@@ -74,6 +74,8 @@ if(WITH_RMODELIO)
     set(WITH_ASSIMP TRUE)
     set(WITH_LIBLAS FALSE)
     set(WITH_RFEATURES TRUE)
+    set(WITH_QT TRUE)   # Needed by VCG!
+    set(WITH_VCG TRUE)  
 endif()
 
 if(WITH_RPASCALVOC)
@@ -230,4 +232,7 @@ if(WITH_DLIB)   # dlib
     link_libraries( ${dlib_LIBRARIES})
 endif()
 
-
+if(WITH_VCG)    # VCGLib (Visual and Computer Graphics Library)
+    set( VCG_DIR "${LIB_PRE_REQS}/vcglib")
+    include_directories( ${VCG_DIR})    # Header only library
+endif()

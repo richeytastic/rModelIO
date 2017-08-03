@@ -68,6 +68,10 @@ struct MaterialTextures
     const std::vector<cv::Mat>& getDiffuse() const { return _dmats;}
     const std::vector<cv::Mat>& getSpecular() const { return _smats;}
 
+    const std::vector<std::string>& getAmbientFilenames() const { return _ambient;}
+    const std::vector<std::string>& getDiffuseFilenames() const { return _diffuse;}
+    const std::vector<std::string>& getSpecularFilenames() const { return _specular;}
+
 private:
     void setTextureTypeFiles( const aiMaterial* mat, aiTextureType txtype, std::vector<std::string>& imgfiles)
     {
@@ -171,16 +175,11 @@ void setObjectTextureCoordinates( const aiMesh* mesh, int matId, const std::vect
         const uint* aiFaceVtxIdxs = aifaces[i].mIndices;   // The indices of the vertices from the mesh that make this polygon
 
         const aiVector3D& aiuv0 = mesh->mTextureCoords[0][aiFaceVtxIdxs[0]];
-        const cv::Vec2f uv0( aiuv0[0], aiuv0[1]);
         const aiVector3D& aiuv1 = mesh->mTextureCoords[0][aiFaceVtxIdxs[1]];
-        const cv::Vec2f uv1( aiuv1[0], aiuv1[1]);
         const aiVector3D& aiuv2 = mesh->mTextureCoords[0][aiFaceVtxIdxs[2]];
-        const cv::Vec2f uv2( aiuv2[0], aiuv2[1]);
-
-        const int v0 = vidxs[aiFaceVtxIdxs[0]];
-        const int v1 = vidxs[aiFaceVtxIdxs[1]];
-        const int v2 = vidxs[aiFaceVtxIdxs[2]];
-        model->setFaceTextureOffsets( matId, fids[i], v0, uv0, v1, uv1, v2, uv2);
+        const cv::Vec2f uvs[3] = { cv::Vec2f( aiuv0[0], aiuv0[1]), cv::Vec2f( aiuv1[0], aiuv1[1]), cv::Vec2f( aiuv2[0], aiuv2[1])};
+        const int vs[3] = {vidxs[aiFaceVtxIdxs[0]], vidxs[aiFaceVtxIdxs[1]], vidxs[aiFaceVtxIdxs[2]]};
+        model->setOrderedFaceTextureOffsets( matId, fids[i], vs, uvs);
     }   // end for
 }   // end setObjectTextureCoordinates
 
@@ -379,9 +378,8 @@ ObjModel::Ptr AssetImporter::createDoublePyramid( float scale, std::string txfil
     const int* fverts[7] = {f0,f1,f2,f3,f4,f5,f6};
     for ( int i = 0; i < 7; ++i)
     {
-        om->setFaceTextureOffsets( matId, om->setFace(fverts[i]), fverts[i][0], tx[0],
-                                                                  fverts[i][1], tx[1],
-                                                                  fverts[i][2], tx[2]);
+        int vs[3] = {fverts[i][0], fverts[i][1], fverts[i][2]};
+        om->setOrderedFaceTextureOffsets( matId, om->setFace(fverts[i]), vs, tx);
     }   // end for
 
     if ( !addTestObjTexture(om, 0, txfile))
