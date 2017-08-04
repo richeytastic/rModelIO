@@ -4,7 +4,7 @@ using RFeatures::ObjModel;
 
 
 // public
-ObjModelExporter::ObjModelExporter( const ObjModel::Ptr m)
+ObjModelExporter::ObjModelExporter( const ObjModel::Ptr m) : _model(m)
 {
 }   // end ctor
 
@@ -12,12 +12,12 @@ ObjModelExporter::ObjModelExporter( const ObjModel::Ptr m)
 // public
 bool ObjModelExporter::save( const std::string& fname)
 {
-    return this->doSave( _model, fname);    // virtual
+    setErr(""); // Clear error
+    if ( !isSupported( fname))
+    {
+        setErr( fname + " has an unsupported file extension for exporting!");
+        return false;
+    }   // end if
+
+    return doSave( _model, fname);    // virtual
 }   // end save
-
-
-// protected
-void ObjModelExporter::setErrMsg( const char* err)
-{
-    _errStr = err;
-}   // end setErrMsg

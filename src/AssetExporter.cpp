@@ -1,80 +1,14 @@
 #include <AssetExporter.h>
-#include <IOUtils.h>
+#include <FileIO.h> // rlib
 #include <assimp/Exporter.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <cassert>
-#include <iostream>
 #include <boost/foreach.hpp>
-#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/unordered_set.hpp>
-
+#include <cassert>
 using RModelIO::AssetExporter;
 using RFeatures::ObjModel;
-using RFeatures::ObjPoly;
-typedef ObjModel::Ptr OM;
-typedef unsigned int uint;
-
-
-AssetExporter* AssetExporter::s_instance(NULL);
-
-
-// public static
-void AssetExporter::free()
-{
-    if ( s_instance)
-        delete s_instance;
-    s_instance = NULL;
-}   // end dtor
-
-
-// private static
-AssetExporter* AssetExporter::get()
-{
-    if ( !s_instance)
-        s_instance = new AssetExporter();
-    return s_instance;
-}   // end get
-
-
-// private
-AssetExporter::AssetExporter()
-{
-    boost::unordered_set<std::string> disallowed;
-    disallowed.insert("3d");
-    disallowed.insert("assbin");
-    disallowed.insert("assxml");
-    disallowed.insert("dae");
-    disallowed.insert("pk3");
-    disallowed.insert("xml");
-    disallowed.insert("cob");
-    disallowed.insert("scn");
-    disallowed.insert("mesh.xml");
-    disallowed.insert("stp");
-
-    boost::unordered_set<std::string> descSet;  // Don't add same descriptions more than once.
-    Assimp::Exporter exporter;
-    const size_t n = exporter.GetExportFormatCount();
-    for ( size_t i = 0; i < n; ++i)
-    {
-        const aiExportFormatDesc* efd = exporter.GetExportFormatDescription(i);
-        const std::string ext = efd->fileExtension;
-        const std::string desc = efd->description;
-
-        if ( ext.empty() || desc.empty() || descSet.count(desc) || disallowed.count(ext))
-            continue;
-
-        _exportFormats[ext] = desc;
-        descSet.insert(desc);
-    }   // end for
-}   // end ctor
-
-
-// private
-AssetExporter::~AssetExporter()
-{
-}   // end dtor
 
 
 std::string setMaterialTextureFilenames( aiMaterial* mat, int matId,
@@ -139,7 +73,7 @@ std::string setMaterialTextureFilenames( aiMaterial* mat, int matId,
 
 
 // Set the mesh points, texture coords, and face (polygon) info.
-void setMesh( aiMesh* mesh, const OM model)
+void setMesh( aiMesh* mesh, const ObjModel::Ptr model)
 {
     const ObjModel::Material& mat = model->getMaterial( mesh->mMaterialIndex);
     const int nfaces = mat.txOffsets.size();
@@ -219,34 +153,55 @@ aiScene* createScene( int nmat)
     {
         scene->mMaterials[i] = new aiMaterial;
         scene->mMeshes[i] = new aiMesh;
-        scene->mMeshes[i]->mMaterialIndex = (uint)i;
+        scene->mMeshes[i]->mMaterialIndex = (unsigned int)i;
     }   // end for
     return scene;
 }   // end createScene
 
 
-// public static
-bool AssetExporter::write( const std::string& fname, const OM& omodel)
+// public
+AssetExporter::AssetExporter( const ObjModel::Ptr model) : RModelIO::ObjModelExporter( model)
 {
-    std::string& errStr = AssetExporter::get()->_errStr;
-    errStr = "";    // Clear error string
+}   // end ctor
 
-    // Get the extension from the filename.
-    const std::string ext = RModelIO::getExtension(fname);
-    if ( ext.empty())
+
+// protected virtual (called via rlib::IOFormats constructor)
+void AssetExporter::populateFormats()
+{
+    boost::unordered_set<std::string> disallowed;
+    disallowed.insert("3d");
+    disallowed.insert("assbin");
+    disallowed.insert("assxml");
+    disallowed.insert("dae");
+    disallowed.insert("pk3");
+    disallowed.insert("xml");
+    disallowed.insert("cob");
+    disallowed.insert("scn");
+    disallowed.insert("mesh.xml");
+    disallowed.insert("stp");
+
+    boost::unordered_set<std::string> descSet;  // Don't add same descriptions more than once.
+    Assimp::Exporter exporter;
+    const size_t n = exporter.GetExportFormatCount();
+    for ( size_t i = 0; i < n; ++i)
     {
-        errStr = "AssetExporter::write( " + fname + "): Can't get extension from filename!";
-        std::cerr << errStr << std::endl;
-        return false;
-    }   // end if
+        const aiExportFormatDesc* efd = exporter.GetExportFormatDescription(i);
+        const std::string ext = efd->fileExtension;
+        const std::string desc = efd->description;
 
-    if ( !AssetExporter::get()->_exportFormats.count(ext))
-    {
-        errStr = "AssetExporter::write( " + fname + "): Invalid extension!";
-        std::cerr << errStr << std::endl;
-        return false;
-    }   // end if
+        if ( ext.empty() || desc.empty() || descSet.count(desc) || disallowed.count(ext))
+            continue;
 
+        const bool addedOkay = addSupported( ext, desc);
+        assert(addedOkay);
+        descSet.insert(desc);
+    }   // end for
+}   // end populateFormats
+
+
+// protected
+bool AssetExporter::doSave( const ObjModel::Ptr omodel, const std::string& fname)
+{
     const int nmat = (int)omodel->getNumMaterials();
     aiScene* scene = createScene( nmat);
     std::string txSaveErr = "";
@@ -263,37 +218,18 @@ bool AssetExporter::write( const std::string& fname, const OM& omodel)
     // Check for error saving textures
     if (!txSaveErr.empty())
     {
-        errStr = "AssetExporter::write( " + fname + "): " + txSaveErr;
-        std::cerr << "[ERROR] " << errStr << std::endl;
+        setErr( "AssetExporter::write( " + fname + "): " + txSaveErr);
         delete scene;
         return false;
     }   // end if
 
     bool savedOkay = false;
     Assimp::Exporter exporter;
-    if ( exporter.Export( scene, ext, fname) == AI_SUCCESS)
+    if ( exporter.Export( scene, rlib::getExtension(fname), fname) == AI_SUCCESS)
         savedOkay = true;
     else
-    {
-        errStr = "AssetExporter::write( " + fname + "): "
-               + "Cannot save model! Assimp::Exporter error: " + exporter.GetErrorString();
-        std::cerr << "[ERROR] " << errStr << std::endl;
-    }   // end else
+        setErr( "AssetExporter::write( " + fname + "): " + "Cannot save model! Assimp::Exporter error: " + exporter.GetErrorString());
 
     delete scene;
     return savedOkay;
-}   // end write
-
-
-// public static
-const std::string& AssetExporter::getError()
-{
-    return AssetExporter::get()->_errStr;
-}   // end getError
-
-
-// public static
-const boost::unordered_map<std::string, std::string>& AssetExporter::getExportFormats()
-{
-    return AssetExporter::get()->_exportFormats;
-}   // end getExportFormats
+}   // end doSave

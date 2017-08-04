@@ -6,34 +6,26 @@
 #define RMODELIO_OBJ_MODEL_EXPORTER_H
 
 #include "rModelIO_Export.h"
-#include <ObjModel.h>
-#include <string>
+#include <IOFormats.h>  // rlib
+#include <ObjModel.h>   // RFeatures
 
 namespace RModelIO
 {
 
-class rModelIO_EXPORT ObjModelExporter
+class rModelIO_EXPORT ObjModelExporter : public rlib::IOFormats
 {
 public:
     explicit ObjModelExporter( const RFeatures::ObjModel::Ptr);
-    ObjModelExporter(){}
     virtual ~ObjModelExporter(){}
 
-    // Returns true on success.
+    // Returns true on success. The filename extension must be supported.
     bool save( const std::string& filename);
 
-    // Get the last error generated from save attempt;
-    const std::string& getError() const { return _errStr;}
-
 protected:
-    virtual void setErrMsg( const char*);
     virtual bool doSave( const RFeatures::ObjModel::Ptr, const std::string& filename) = 0;
 
 private:
     const RFeatures::ObjModel::Ptr _model;
-    ObjModelExporter( const ObjModelExporter&); // NO COPY
-    void operator=( const ObjModelExporter&);   // NO COPY
-    std::string _errStr;
 };  // end class
 
 }   // end namespace

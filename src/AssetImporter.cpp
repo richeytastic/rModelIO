@@ -1,5 +1,5 @@
 #include <AssetImporter.h>
-#include <IOUtils.h>
+#include <FileIO.h>     // rlib
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/unordered_set.hpp>
@@ -226,16 +227,8 @@ int setObjectTextures( const boost::filesystem::path& ppath, const aiScene *scen
 }   // end setObjectTextures
 
 
-bool _FAIL_ON_NON_TRIANGLES(false); // Yes it's a global. Shut up.
-void AssetImporter::setReadFailOnNonTriangles( bool enable)
-{
-    _FAIL_ON_NON_TRIANGLES = enable;
-}   // end setReadFailOnNonTriangles
-
-
-
 // private
-ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::path& ppath, bool loadTextures)
+ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::path& ppath, bool loadTextures, bool failOnNonTriangles)
 {
     const aiScene* scene = importer->GetScene();
     const uint nmaterials = scene->mNumMaterials;
@@ -272,7 +265,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
             const int dupTriangles = setObjectFaces( mesh, *vidxs, *fidxs, nonTriangles, faceSet, model);
             if ( nonTriangles > 0)
             {
-                if ( _FAIL_ON_NON_TRIANGLES)
+                if ( failOnNonTriangles)
                 {
                     std::cerr << "[ERROR] RModelIO::AssetImporter::createModel()"
                               << " failed on discovery of " << nonTriangles
@@ -319,90 +312,11 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
 }   // end createModel
 
 
-bool addTestObjTexture( ObjModel::Ptr om, int matId, const std::string& txfile)
+// public
+AssetImporter::AssetImporter( bool loadTextures, bool failOnNonTriangles)
+    : _loadTextures(loadTextures), _failOnNonTriangles(failOnNonTriangles)
 {
-    if ( txfile.empty())
-    {
-        std::cerr << "No texture file given for test object!" << std::endl;
-        return true;
-    }   // end if
-
-    bool loadedokay = true;
-    std::cerr << "Loading texture from " << txfile << std::endl;
-    boost::filesystem::path txpath(txfile);
-    if ( !boost::filesystem::exists( txpath))
-    {
-        std::cerr << "File " << txfile << " does not exist!" << std::endl;
-        return false;
-    }   // end if
-
-    cv::Mat img = cv::imread( txfile);
-    if ( !img.empty())
-        om->addMaterialDiffuse( matId, img);
-    else
-        loadedokay = false;
-
-    return loadedokay;
-}   // end addTestObjTexture
-
-
-// public static
-ObjModel::Ptr AssetImporter::createDoublePyramid( float scale, std::string txfile)
-{
-    std::cerr << "*** CREATING TEST OBJECT ***" << std::endl;
-    ObjModel::Ptr om = RFeatures::ObjModel::create();
-
-    // First three vertices are the centre triangle
-    const cv::Vec3f v[5] = {cv::Vec3f(0,0,-1), cv::Vec3f(-1,0,1), cv::Vec3f(1,0,1),
-                            cv::Vec3f(0,1,0), cv::Vec3f(0,-1,0)};   // Top and bottom
-    int f0[3];  // HIDDEN FACE BETWEEN PYRADMIDS
-    f0[0] = om->addVertex( scale * v[0]); f0[1] = om->addVertex( scale * v[1]); f0[2] = om->addVertex( scale * v[2]);
-    int f1[3];
-    f1[0] = om->addVertex( scale * v[3]); f1[1] = om->addVertex( scale * v[1]); f1[2] = om->addVertex( scale * v[2]);
-    int f2[3];
-    f2[0] = om->addVertex( scale * v[3]); f2[1] = om->addVertex( scale * v[2]); f2[2] = om->addVertex( scale * v[0]);
-    int f3[3];
-    f3[0] = om->addVertex( scale * v[3]); f3[1] = om->addVertex( scale * v[0]); f3[2] = om->addVertex( scale * v[1]);
-    int f4[3];
-    f4[0] = om->addVertex( scale * v[4]); f4[1] = om->addVertex( scale * v[2]); f4[2] = om->addVertex( scale * v[1]);
-    int f5[3];
-    f5[0] = om->addVertex( scale * v[4]); f5[1] = om->addVertex( scale * v[1]); f5[2] = om->addVertex( scale * v[0]);
-    int f6[3];
-    f6[0] = om->addVertex( scale * v[4]); f6[1] = om->addVertex( scale * v[0]); f6[2] = om->addVertex( scale * v[2]);
-
-    const int matId = om->addMaterial();
-
-    // Texture coords
-    const cv::Vec2f tx[3] = {cv::Vec2f(0,0), cv::Vec2f(0,1), cv::Vec2f(1,0)};
-
-    const int* fverts[7] = {f0,f1,f2,f3,f4,f5,f6};
-    for ( int i = 0; i < 7; ++i)
-    {
-        int vs[3] = {fverts[i][0], fverts[i][1], fverts[i][2]};
-        om->setOrderedFaceTextureOffsets( matId, om->setFace(fverts[i]), vs, tx);
-    }   // end for
-
-    if ( !addTestObjTexture(om, 0, txfile))
-    {
-        std::cerr << "[ERROR] AssetImporter::createDoublePyramid(): OpenCV couldn't load test texture!" << std::endl;
-        return ObjModel::Ptr();
-    }   // end if
-
-    std::cerr << "Hidden face vertices are: " << f3[0] << ", " << f3[1] << ", " << f3[2] << std::endl;
-    std::cerr << "End point vertices are: " << f0[0] << " & " << f4[0] << std::endl;
-    return om;
-}   // end createDoublePyramid
-
-
-AssetImporter* AssetImporter::s_instance(NULL); // static
-
-// public static
-AssetImporter* AssetImporter::get()
-{
-    if (!s_instance)
-        s_instance = new AssetImporter;
-    return s_instance;
-}   // end get
+}   // end ctor
 
 
 std::string getImporterSuffix( const Assimp::Importer* importer, size_t i)
@@ -420,13 +334,13 @@ std::string getImporterDescription( const Assimp::Importer* importer, size_t i)
     std::string name = adesc->mName;
     boost::algorithm::replace_last(name, "Importer", "");
     boost::algorithm::replace_all(name, "\n", "");
-    RModelIO::removeParentheticalContent( name);
+    rlib::removeParentheticalContent( name);
     return name;
 }   // end getImporterDescription
 
 
-// private
-AssetImporter::AssetImporter()
+// protected virtual -- overrides rlib::IOFormats::populateFormats
+void AssetImporter::populateFormats()
 {
     boost::unordered_set<std::string> disallowed;
     disallowed.insert("3d");
@@ -459,29 +373,16 @@ AssetImporter::AssetImporter()
         {
             // Only add if not a disallowed file type
             if ( !disallowed.count(tok))
-                _importFormats[tok] = desc;
+                addSupported( tok, desc);
         }   // end foreach
     }   // end for
     delete importer;
-}   // end ctor
+}   // end populateFormats
 
 
-// public static
-ObjModel::Ptr AssetImporter::read( const std::string& fname, bool loadTextures)
+// public
+ObjModel::Ptr AssetImporter::doLoad( const std::string& fname)
 {
-    AssetImporter* ai = get();
-    std::string& errStr = ai->_errStr;
-    errStr = "";
-
-    // Check the format is allowed
-    const std::string fext = RModelIO::getExtension(fname);
-    if ( !getImportFormats().count(fext))
-    {
-        errStr = "AssetImporter::read(): " + fname + " is not an allowed file format!";
-        std::cerr << "[ERROR] " << errStr << std::endl;
-        return ObjModel::Ptr();
-    }   // end if
-
     Assimp::Importer* importer = new Assimp::Importer;
     // Read the file into the common AssImp format.
     importer->ReadFile( fname, aiProcess_Triangulate
@@ -499,42 +400,16 @@ ObjModel::Ptr AssetImporter::read( const std::string& fname, bool loadTextures)
 
     ObjModel::Ptr model;
     if ( !importer->GetScene())
-        errStr = "AssetImporter::read(): Unable to read 3D scene into importer from " + fname;
+        setErr( "AssetImporter::read(): Unable to read 3D scene into importer from " + fname);
     else
     {
-        model = createModel( importer, boost::filesystem::path( fname).parent_path(), loadTextures);
+        model = createModel( importer, boost::filesystem::path( fname).parent_path(), _loadTextures, _failOnNonTriangles);
         if (model == NULL)
-            errStr = "AssetImporter::read(): Unable to translate imported model into standard format (RFeatures::ObjModel)";
+            setErr( "AssetImporter::read(): Unable to translate imported model into standard format (RFeatures::ObjModel)");
         importer->FreeScene();
     }   // end else
 
     delete importer;
-
-    if ( !errStr.empty())
-        std::cerr << "[ERROR] " << errStr << std::endl;
-
     return model;
-}   // end read
+}   // end doLoad
 
-
-// public static
-const std::string& AssetImporter::getError()
-{
-    return get()->_errStr;
-}   // end getError
-
-
-// public static
-const boost::unordered_map<std::string, std::string>& AssetImporter::getImportFormats()
-{
-    return get()->_importFormats;
-}   // end getImportFormats
-
-
-// public static
-void AssetImporter::free()
-{
-    if ( s_instance)
-        delete s_instance;
-    s_instance = NULL;
-}   // end free

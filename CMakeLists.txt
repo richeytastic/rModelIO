@@ -13,24 +13,24 @@ set( SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 include_directories( ${INCLUDE_DIR})
 
 set( INCLUDE_FILES
-    "${INCLUDE_DIR}/IOUtils.h"
     #"${INCLUDE_DIR}/AAMReader.h"
     "${INCLUDE_DIR}/AssetImporter.h"
     "${INCLUDE_DIR}/AssetExporter.h"
     #"${INCLUDE_DIR}/LASImporter.h"
     "${INCLUDE_DIR}/ObjModelExporter.h"
+    "${INCLUDE_DIR}/ObjModelImporter.h"
     "${INCLUDE_DIR}/ObjModel2VCG.h"
     "${INCLUDE_DIR}/U3DExporter.h"
     "${INCLUDE_DIR}/VCGTypes.h"
     )
 
 set( SRC_FILES
-    ${SRC_DIR}/IOUtils
     #${SRC_DIR}/AAMReader
     ${SRC_DIR}/AssetImporter
     ${SRC_DIR}/AssetExporter
     #${SRC_DIR}/LASImporter
     ${SRC_DIR}/ObjModelExporter
+    ${SRC_DIR}/ObjModelImporter
     ${SRC_DIR}/ObjModel2VCG
     ${SRC_DIR}/U3DExporter
     )

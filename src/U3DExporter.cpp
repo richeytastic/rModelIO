@@ -17,15 +17,21 @@ U3DExporter::U3DExporter( const ObjModel::Ptr mod) : ObjModelExporter(mod)
 }   // end ctor
 
 
+// protected virtual -- overrides rlib::IOFormats::populateFormats
+void U3DExporter::populateFormats()
+{
+    addSupported( "u3d", "Universal 3D");
+}   // end populateFormats
+
+
 // protected
 bool U3DExporter::doSave( const ObjModel::Ptr model, const std::string& filename)
 {
-    setErrMsg("");
     RModelIO::ObjModel2VCG om2vcg;
     VCGObjModel::Ptr vmodel = om2vcg.create( model);
     if ( vmodel == NULL)
     {
-        setErrMsg( "[ERROR] RModelIO::U3DExporter::save: NULL VCGObjModel!");
+        setErr( "[ERROR] RModelIO::U3DExporter::save: NULL VCGObjModel!");
         return false;
     }   // end if
 
@@ -54,7 +60,7 @@ bool U3DExporter::doSave( const ObjModel::Ptr model, const std::string& filename
 
     const int errCode = vcg::tri::io::ExporterU3D<VCGObjModel>::Save( *vmodel, filename.c_str(), convLoc, movParams, mask);
     if ( errCode > 0)
-        setErrMsg( vcg::tri::io::ExporterU3D<VCGObjModel>::ErrorMsg( errCode));
+        setErr( vcg::tri::io::ExporterU3D<VCGObjModel>::ErrorMsg( errCode));
     return errCode == 0;
 }   // end doSave
 
