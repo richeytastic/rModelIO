@@ -19,7 +19,6 @@
 #include <ObjModel2VCG.h>
 using RModelIO::VCGObjModel;
 using RModelIO::U3DExporter;
-using RModelIO::ObjModelExporter;
 using RFeatures::ObjModel;
 #include <wrap/io_trimesh/export_u3d.h> // VCG
 #include <cassert>
@@ -29,16 +28,10 @@ using RFeatures::ObjModel;
 
 
 // public
-U3DExporter::U3DExporter( const ObjModel::Ptr mod) : ObjModelExporter(mod)
-{
-}   // end ctor
-
-
-// protected virtual -- overrides rlib::IOFormats::populateFormats
-void U3DExporter::populateFormats()
+U3DExporter::U3DExporter( const ObjModel::Ptr mod) : RModelIO::ObjModelExporter(mod)
 {
     addSupported( "u3d", "Universal 3D");
-}   // end populateFormats
+}   // end ctor
 
 
 // protected

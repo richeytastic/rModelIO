@@ -21,7 +21,7 @@ using RFeatures::ObjModel;
 
 
 // public
-ObjModelExporter::ObjModelExporter( const ObjModel::Ptr m) : _model(m)
+ObjModelExporter::ObjModelExporter( const ObjModel::Ptr m) : rlib::IOFormats(), _model(m)
 {
 }   // end ctor
 

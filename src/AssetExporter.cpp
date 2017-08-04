@@ -179,12 +179,6 @@ aiScene* createScene( int nmat)
 // public
 AssetExporter::AssetExporter( const ObjModel::Ptr model) : RModelIO::ObjModelExporter( model)
 {
-}   // end ctor
-
-
-// protected virtual (called via rlib::IOFormats constructor)
-void AssetExporter::populateFormats()
-{
     boost::unordered_set<std::string> disallowed;
     disallowed.insert("3d");
     disallowed.insert("assbin");
@@ -213,7 +207,7 @@ void AssetExporter::populateFormats()
         assert(addedOkay);
         descSet.insert(desc);
     }   // end for
-}   // end populateFormats
+}   // end ctor
 
 
 // protected

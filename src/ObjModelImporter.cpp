@@ -19,6 +19,11 @@
 using RModelIO::ObjModelImporter;
 
 
+ObjModelImporter::ObjModelImporter() : rlib::IOFormats()
+{
+}   // end ctor
+
+
 RFeatures::ObjModel::Ptr ObjModelImporter::load( const std::string& fname)
 {
     setErr(""); // Clear error

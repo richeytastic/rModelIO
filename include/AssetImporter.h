@@ -41,7 +41,6 @@ public:
 
 protected:
     virtual RFeatures::ObjModel::Ptr doLoad( const std::string& filename);
-    virtual void populateFormats();
 
 private:
     bool _loadTextures;

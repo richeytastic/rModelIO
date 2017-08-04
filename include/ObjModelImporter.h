@@ -32,6 +32,7 @@ namespace RModelIO
 class rModelIO_EXPORT ObjModelImporter : public rlib::IOFormats
 {
 public:
+    ObjModelImporter();
     virtual ~ObjModelImporter(){}
 
     // On error, NULL object returned. The filename extension must be supported.

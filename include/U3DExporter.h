@@ -37,7 +37,6 @@ public:
 
 protected:
     virtual bool doSave( const RFeatures::ObjModel::Ptr, const std::string& filename);
-    virtual void populateFormats();
 };  // end class
 
 }   // end namespace

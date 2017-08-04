@@ -329,12 +329,6 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
 }   // end createModel
 
 
-// public
-AssetImporter::AssetImporter( bool loadTextures, bool failOnNonTriangles)
-    : _loadTextures(loadTextures), _failOnNonTriangles(failOnNonTriangles)
-{
-}   // end ctor
-
 
 std::string getImporterSuffix( const Assimp::Importer* importer, size_t i)
 {
@@ -356,9 +350,12 @@ std::string getImporterDescription( const Assimp::Importer* importer, size_t i)
 }   // end getImporterDescription
 
 
-// protected virtual -- overrides rlib::IOFormats::populateFormats
-void AssetImporter::populateFormats()
+// public
+AssetImporter::AssetImporter( bool loadTextures, bool failOnNonTriangles)
+    : RModelIO::ObjModelImporter(),
+      _loadTextures(loadTextures), _failOnNonTriangles(failOnNonTriangles)
 {
+    std::cerr << "AssetImporter::populateFormats" << std::endl;
     boost::unordered_set<std::string> disallowed;
     disallowed.insert("3d");
     disallowed.insert("assbin");
@@ -394,7 +391,8 @@ void AssetImporter::populateFormats()
         }   // end foreach
     }   // end for
     delete importer;
-}   // end populateFormats
+}   // end ctor
+
 
 
 // public
@@ -414,7 +412,6 @@ ObjModel::Ptr AssetImporter::doLoad( const std::string& fname)
                              | aiProcess_FindInstances
                              | aiProcess_FindInvalidData
                              );
-
     ObjModel::Ptr model;
     if ( !importer->GetScene())
         setErr( "AssetImporter::read(): Unable to read 3D scene into importer from " + fname);
