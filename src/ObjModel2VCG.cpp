@@ -22,7 +22,8 @@ VCGObjModel::Ptr ObjModel2VCG::create( const ObjModel::Ptr model)
     int i = 0;
     const IntSet& vidxs = model->getVertexIds();
     IIMap objToVCGVerts;
-    VCGObjModel::VertexPointer vps[model->getNumVertices()];
+    std::vector<VCGObjModel::VertexPointer> vps( model->getNumVertices());
+
     BOOST_FOREACH ( int vidx, vidxs)
     {
         objToVCGVerts[vidx] = i; // Map Obj to VCG vertex ID

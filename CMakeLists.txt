@@ -3,9 +3,9 @@ project( rModelIO)
 
 set(WITH_ASSIMP TRUE)
 set(WITH_LIBLAS FALSE)
-set(WITH_RFEATURES TRUE)
 set(WITH_QT TRUE)   # Needed by VCG!
 set(WITH_VCG TRUE)
+set(WITH_RFEATURES TRUE)
 include( "cmake/LibCommon.cmake")
 
 set( INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
