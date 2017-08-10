@@ -28,8 +28,7 @@ using RModelIO::AssetExporter;
 using RFeatures::ObjModel;
 
 
-std::string setMaterialTextureFilenames( aiMaterial* mat, int matId,
-                                         const ObjModel::Material& omat, const std::string& fname)
+std::string saveMaterialTextures( aiMaterial* mat, int matId, const ObjModel::Ptr model, const std::string& fname)
 {
     const boost::filesystem::path filepath(fname);
     const boost::filesystem::path fstem = filepath.stem();
@@ -46,7 +45,11 @@ std::string setMaterialTextureFilenames( aiMaterial* mat, int matId,
     const aiString matName( oss.str());
     mat->AddProperty( &matName, AI_MATKEY_NAME);  // newmtl
 
-    if (!omat.ambient.empty())
+    const std::vector<cv::Mat>& ambient = model->getMaterialAmbient(matId);
+    const std::vector<cv::Mat>& diffuse = model->getMaterialDiffuse(matId);
+    const std::vector<cv::Mat>& specular = model->getMaterialSpecular(matId);
+
+    if (!ambient.empty())
     {
         boost::filesystem::path ipath( fstem.string() + "_ambient.png");
         const aiString tfile( ipath.string());
@@ -54,12 +57,12 @@ std::string setMaterialTextureFilenames( aiMaterial* mat, int matId,
         boost::filesystem::path imgpath = boost::filesystem::path( tfile.C_Str());
         if ( !boost::filesystem::exists(imgpath))   // Save if not already present
         {
-            if ( !cv::imwrite( imgpath.string(), omat.ambient))
+            if ( !cv::imwrite( imgpath.string(), ambient[0]))
                 return "Cannot save ambient texture to " + imgpath.string();
         }   // end if
     }   // end if
 
-    if (!omat.diffuse.empty())
+    if (!diffuse.empty())
     {
         boost::filesystem::path ipath( fstem.string() + "_diffuse.png");
         const aiString tfile( ipath.string());
@@ -67,12 +70,12 @@ std::string setMaterialTextureFilenames( aiMaterial* mat, int matId,
         boost::filesystem::path imgpath = boost::filesystem::path( tfile.C_Str());
         if ( !boost::filesystem::exists(imgpath))   // Save if not already present
         {
-            if ( !cv::imwrite( imgpath.string(), omat.diffuse))
+            if ( !cv::imwrite( imgpath.string(), diffuse[0]))
                 return "Cannot save diffuse texture to " + imgpath.string();
         }   // end if
     }   // end if
 
-    if (!omat.specular.empty())
+    if (!specular.empty())
     {
         boost::filesystem::path ipath( fstem.string() + "_specular.png");
         const aiString tfile( ipath.string());
@@ -80,22 +83,22 @@ std::string setMaterialTextureFilenames( aiMaterial* mat, int matId,
         boost::filesystem::path imgpath = boost::filesystem::path( tfile.C_Str());
         if ( !boost::filesystem::exists(imgpath))   // Save if not already present
         {
-            if ( !cv::imwrite( imgpath.string(), omat.specular))
+            if ( !cv::imwrite( imgpath.string(), specular[0]))
                 return "Cannot save specular texture to " + imgpath.string();
         }   // end if
     }   // end if
 
     return "";
-}   // end setTextureFileInScene
+}   // end setMaterialTextures
 
 
 // Set the mesh points, texture coords, and face (polygon) info.
 void setMesh( aiMesh* mesh, const ObjModel::Ptr model)
 {
-    const ObjModel::Material& mat = model->getMaterial( mesh->mMaterialIndex);
-    const int nfaces = mat.txOffsets.size();
+    const int mid = mesh->mMaterialIndex;
+    const IntSet& mfaceIds = model->getMaterialFaceIds( mid);
 
-    const int nverts = 3 * nfaces;
+    const int nverts = 3 * mfaceIds.size();
     mesh->mNumVertices = nverts;
     mesh->mVertices = new aiVector3D[nverts];
     mesh->mNumUVComponents[0] = nverts;
@@ -104,13 +107,10 @@ void setMesh( aiMesh* mesh, const ObjModel::Ptr model)
     boost::unordered_map<int,int>* objToAssImpVerts = new boost::unordered_map<int,int>;
 
     int i = 0;
-    typedef std::pair<int, cv::Vec6f> TUV;
-    BOOST_FOREACH ( const TUV& tuv, mat.txOffsets)
+    BOOST_FOREACH ( int fid, mfaceIds)
     {
-        const int fid = tuv.first;
-        const cv::Vec6f& tx = tuv.second;
-        const cv::Vec3i& vtxs = mat.faceVertexOrder.at(fid);
-
+        const int* vtxs = model->getFaceVertices(fid);
+        const int* uvids = model->getFaceUVs(fid);
         for ( int k = 0; k < 3; ++k)
         {
             const cv::Vec3f& v = model->getVertex(vtxs[k]);
@@ -119,9 +119,10 @@ void setMesh( aiMesh* mesh, const ObjModel::Ptr model)
             vertex[1] = v[1];
             vertex[2] = v[2];
 
+            const cv::Vec2f& uv = model->uv( mid, uvids[k]);
             aiVector3D& texture = mesh->mTextureCoords[0][i];
-            texture[0] = tx[2*k+0];
-            texture[1] = tx[2*k+1];
+            texture[0] = uv[0];
+            texture[1] = uv[1];
             texture[2] = 0; // Ignored
 
             (*objToAssImpVerts)[vtxs[k]] = i++; // Map for setting of faces
@@ -129,14 +130,13 @@ void setMesh( aiMesh* mesh, const ObjModel::Ptr model)
     }   // end foreach
 
     // Set the faces in the mesh
-    mesh->mNumFaces = nfaces;
-    mesh->mFaces = new aiFace[nfaces];
+    mesh->mNumFaces = mfaceIds.size();
+    mesh->mFaces = new aiFace[mfaceIds.size()];
 
     i = 0;
-    typedef std::pair<int, cv::Vec3i> FV;
-    BOOST_FOREACH ( const FV& fv, mat.faceVertexOrder)
+    BOOST_FOREACH ( int fid, mfaceIds)
     {
-        const cv::Vec3i& vtxs = fv.second;
+        const int* vtxs = model->getFaceVertices(fid);
         aiFace& face = mesh->mFaces[i++];
         face.mNumIndices = 3;
         face.mIndices = new unsigned int[3];
@@ -211,8 +211,9 @@ AssetExporter::AssetExporter( const ObjModel::Ptr model) : RModelIO::ObjModelExp
 
 
 // protected
-bool AssetExporter::doSave( const ObjModel::Ptr omodel, const std::string& fname)
+bool AssetExporter::doSave( const std::string& fname)
 {
+    const ObjModel::Ptr omodel = _model;
     const int nmat = (int)omodel->getNumMaterials();
     aiScene* scene = createScene( nmat);
     std::string txSaveErr = "";
@@ -221,7 +222,7 @@ bool AssetExporter::doSave( const ObjModel::Ptr omodel, const std::string& fname
         aiMesh* mesh = scene->mMeshes[i];
         setMesh( mesh, omodel);
         aiMaterial* mat = scene->mMaterials[i];
-        txSaveErr = setMaterialTextureFilenames( mat, i, omodel->getMaterial(i), fname);
+        txSaveErr = saveMaterialTextures( mat, i, omodel, fname);
         if (!txSaveErr.empty())
             break;
     }   // end for

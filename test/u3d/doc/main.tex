@@ -1,0 +1,34 @@
+\documentclass[a4paper]{article}
+\usepackage{media9}
+\usepackage[a4paper]{geometry}
+\usepackage{a4wide}
+\usepackage[parfill]{parskip}   % New paragraphs with an empty line rather than an indent
+\usepackage[UKenglish]{babel}
+\usepackage[colorlinks=true]{hyperref} 
+
+\begin{document}
+\title{U3D Example}
+\author{Richard Palmer}
+\maketitle
+
+\begin{figure}[!ht]
+\centering
+\includemedia[
+    width=150mm,
+    height=150mm,
+    keepaspectratio,
+    activate=pageopen,
+    playbutton=plain,    % plain | fancy (default) | none
+    3Dcoo=0 0 0,         % centre of orbit of the camera (x y z)
+    3Dc2c=0 0 1,         % direction to camera from coo
+    3Droll=0,            % clockwise roll in degrees around optical axis
+    3Droo=600,           % radius of obrbit
+    3Daac=30             % perspective fov in degrees
+    %3Dbg=0 0 0           % background colour of scene (r g b) \in [0,1] (can't set transparency if set)
+    ]{}{../bin/tst.u3d}
+    %]{}{tcube.u3d}
+\caption{Example U3D embedded in PDF.}
+\label{fig:u3d_example}
+\end{figure}
+
+\end{document}

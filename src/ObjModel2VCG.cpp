@@ -30,78 +30,86 @@ ObjModel2VCG::ObjModel2VCG()
 }   // end ctor
 
 
+// If vertex vidx from model has not yet been added to vmod, add it.
+void checkAddVertex( int vidx, boost::unordered_map<int, VCGObjModel::VertexPointer>* vvmap, const ObjModel::Ptr model, VCGObjModel* vmod)
+{
+    if ( vvmap->count(vidx) == 0)
+    {
+        const cv::Vec3f& v = model->vtx(vidx);
+        (*vvmap)[vidx] = &*vcg::tri::Allocator<VCGObjModel>::AddVertex( *vmod, VCGObjModel::CoordType( v[0], v[1], v[2]));
+    }   // end if
+}   // end checkAddVertex
+
+
+// public
 VCGObjModel::Ptr ObjModel2VCG::create( const ObjModel::Ptr model)
 {
-    typedef boost::unordered_map<int,int> IIMap;
     VCGObjModel* vmod = new VCGObjModel;
 
     // Since ObjModel vertices are iterated over in an unpredictable order, store the mappings to the VCG vertex pointers.
-    int i = 0;
-    const IntSet& vidxs = model->getVertexIds();
-    IIMap objToVCGVerts;
-    std::vector<VCGObjModel::VertexPointer> vps( model->getNumVertices());
-
-    BOOST_FOREACH ( int vidx, vidxs)
-    {
-        objToVCGVerts[vidx] = i; // Map Obj to VCG vertex ID
-        const cv::Vec3f& v = model->vtx(vidx);
-        vps[i++] = &*vcg::tri::Allocator<VCGObjModel>::AddVertex( *vmod, VCGObjModel::CoordType( v[0], v[1], v[2]));
-    }   // end foreach
-
-    // Add faces, setting the texture coords as we go.
-    IIMap m2t;  // ObjModel Material ID 2 vmod->textures index.
-    int tn;
-    int vorder[3];      // Vertex IDs in texture offset order on a face from ObjModel
-    cv::Vec2f uvs[3];   // Corresponding texture offsets from the model
     const IntSet& fids = model->getFaceIds();
+    VCGObjModel::FaceIterator fi = vcg::tri::Allocator<VCGObjModel>::AddFaces( *vmod, fids.size());
+
+    // Map ObjModel vertex indices to the VCGObjModel's corresponding vertex pointers added in checkAddVertex.
+    boost::unordered_map<int, VCGObjModel::VertexPointer>* vvmap = new boost::unordered_map<int, VCGObjModel::VertexPointer>;
+
+    boost::unordered_map<int,int> m2t;  // ObjModel material ID to VCGObjModel texture id (index into vmod->textures).
     BOOST_FOREACH ( int fid, fids)
     {
-        // Only gets texture offsets if a material exists on face fid.
-        const int mid = model->getOrderedFaceTextureOffsets( fid, vorder, uvs);
-        if ( mid < 0)
+        const int *vids = model->getFaceVertices(fid);
+        checkAddVertex( vids[0], vvmap, model, vmod);
+        checkAddVertex( vids[1], vvmap, model, vmod);
+        checkAddVertex( vids[2], vvmap, model, vmod);
+        fi->V(0) = vvmap->at(vids[0]);
+        fi->V(1) = vvmap->at(vids[1]);
+        fi->V(2) = vvmap->at(vids[2]);
+
+        const int mid = model->getFaceMaterialId( fid);
+        if ( mid >= 0)
         {
-            // No material, so set according to the ascending order of vertex IDs given in the ObjPoly.
-            const int *vindices = model->getFace(fid).vindices;
-            vcg::tri::Allocator<VCGObjModel>::AddFace( *vmod, vps[objToVCGVerts[vindices[0]]],
-                                                              vps[objToVCGVerts[vindices[1]]],
-                                                              vps[objToVCGVerts[vindices[2]]]);
-        }   // end if
-        else 
-        {
-            VCGObjModel::FaceIterator fi = vcg::tri::Allocator<VCGObjModel>::AddFace( *vmod, vps[objToVCGVerts[vorder[0]]],
-                                                                                             vps[objToVCGVerts[vorder[1]]],
-                                                                                             vps[objToVCGVerts[vorder[2]]]);
-            (*fi).WT(0).U() = uvs[0][0];
-            (*fi).WT(0).V() = uvs[0][1];
-            (*fi).WT(1).U() = uvs[1][0];
-            (*fi).WT(1).V() = uvs[1][1];
-            (*fi).WT(2).U() = uvs[2][0];
-            (*fi).WT(2).V() = uvs[2][1];
+            const int* uvids = model->getFaceUVs(fid);
+            const cv::Vec2f& uv0 = model->uv( mid, uvids[0]);
+            const cv::Vec2f& uv1 = model->uv( mid, uvids[1]);
+            const cv::Vec2f& uv2 = model->uv( mid, uvids[2]);
+            VCGObjModel::FacePointer fp = &*fi;
+            (*fp).WT(0).U() = uv0[0];
+            (*fp).WT(0).V() = uv0[1];
+            (*fp).WT(1).U() = uv1[0];
+            (*fp).WT(1).V() = uv1[1];
+            (*fp).WT(2).U() = uv2[0];
+            (*fp).WT(2).V() = uv2[1];
 
             // VCG only supports one texture per material (use diffuse)
             if ( m2t.count(mid) == 0)
                 m2t[mid] = (int)vmod->textures.size();
-            tn = m2t[mid];
+            const int tn = m2t[mid];
             vmod->textures.resize( tn+1);   // Resize the texture filename array, but leave the elements empty.
 
-            (*fi).WT(0).N() = (*fi).WT(1).N() = (*fi).WT(2).N() = tn; // Index into vmod->textures
+            (*fp).WT(0).N() = (*fp).WT(1).N() = (*fp).WT(2).N() = tn; // Index into vmod->textures
 
             // Finally, store reference to the diffuse texture in the material (though will take ambient or specular too)
             _tmaps.resize( tn+1);
-            const ObjModel::Material& mat = model->getMaterial(mid);
-            if ( !mat.diffuse.empty())  // Preference diffuse...
-                _tmaps[tn] = mat.diffuse[0];
-            else if ( !mat.ambient.empty()) // then ambient if diffuse unavailable...
-                _tmaps[tn] = mat.ambient[0];
-            else if ( !mat.specular.empty())    // then specular if ambient unavailable.
-                _tmaps[tn] = mat.specular[0];
+            const std::vector<cv::Mat>& ambient = model->getMaterialAmbient(mid);
+            const std::vector<cv::Mat>& diffuse = model->getMaterialDiffuse(mid);
+            const std::vector<cv::Mat>& specular = model->getMaterialSpecular(mid);
+
+            if ( !diffuse.empty())  // Preference diffuse...
+                _tmaps[tn] = diffuse[0];
+            else if ( !ambient.empty()) // then ambient if diffuse unavailable...
+                _tmaps[tn] = ambient[0];
+            else if ( !specular.empty())    // then specular if ambient unavailable.
+                _tmaps[tn] = specular[0];
             else
             {
                 assert(false);
                 std::cerr << "[ERROR] ObjModel2VCG::create: no texture maps in referenced ObjModel::Material!" << std::endl;
             }   // end else
         }   // end if
+
+        fi++;   // Ready for next face
     }   // end foreach
 
+    delete vvmap;
     return VCGObjModel::Ptr( vmod);
 }   // end create
+

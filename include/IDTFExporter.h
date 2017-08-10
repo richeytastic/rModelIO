@@ -16,31 +16,38 @@
  ************************************************************************/
 
 /**
- * Simple common interface to ObjModel exporters.
+ * Export model to Intermediate Data Text Format (IDTF). Precursor to U3D format.
  */
 
-#ifndef RMODELIO_OBJ_MODEL_EXPORTER_H
-#define RMODELIO_OBJ_MODEL_EXPORTER_H
+#ifndef RMODELIO_IDTF_EXPORTER_H
+#define RMODELIO_IDTF_EXPORTER_H
 
-#include "rModelIO_Export.h"
-#include <IOFormats.h>  // rlib
-#include <ObjModel.h>   // RFeatures
+#include "ObjModelExporter.h"
+
 
 namespace RModelIO
 {
 
-class rModelIO_EXPORT ObjModelExporter : public rlib::IOFormats
+class rModelIO_EXPORT IDTFExporter : public ObjModelExporter
 {
 public:
-    explicit ObjModelExporter( const RFeatures::ObjModel::Ptr);
-    virtual ~ObjModelExporter(){}
+    // IDTF is used as an intermediate step to producing U3D files. In such cases, it is
+    // not necessary to leave the produced files on the filesystem post conversion. If
+    // desired, set delFiles to delete from the filesystem the produced IDTF file and
+    // any saved tga images (ObjModel material textures) upon any new call to save,
+    // or upon destruction of this object.
+    IDTFExporter( const RFeatures::ObjModel::Ptr, bool delFiles=false);
 
-    // Returns true on success. The filename extension must be supported.
-    bool save( const std::string& filename);
+    virtual ~IDTFExporter();
 
 protected:
-    virtual bool doSave( const std::string& filename) = 0;
-    const RFeatures::ObjModel::Ptr _model;
+    virtual bool doSave( const std::string& filename);
+
+private:
+    bool _delOnDtor;
+    std::string _idtffile;
+    std::vector<std::string> _tgafiles;
+    void reset();
 };  // end class
 
 }   // end namespace

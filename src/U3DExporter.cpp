@@ -16,62 +16,112 @@
  ************************************************************************/
 
 #include <U3DExporter.h>
-#include <ObjModel2VCG.h>
-using RModelIO::VCGObjModel;
-using RModelIO::U3DExporter;
-using RFeatures::ObjModel;
-#include <wrap/io_trimesh/export_u3d.h> // VCG
+#include <IDTFExporter.h>
 #include <cassert>
 #include <iostream>
 #include <sstream>
+#include <cstdio>   // popen
 #include <boost/filesystem/operations.hpp>
+using RModelIO::IDTFExporter;
+using RModelIO::U3DExporter;
+using RFeatures::ObjModel;
 
 
 // public
 U3DExporter::U3DExporter( const ObjModel::Ptr mod) : RModelIO::ObjModelExporter(mod)
 {
+#ifdef IDTF_CONVERTER
     addSupported( "u3d", "Universal 3D");
+    std::cout << "IDTFConverter defined as " << IDTF_CONVERTER << std::endl;
+#else
+    std::cerr << "[ERROR] RModelIO::U3DExporter: U3D export unavailable; IDTF to U3D converter not defined!" << std::endl;
+#endif
 }   // end ctor
 
 
-// protected
-bool U3DExporter::doSave( const ObjModel::Ptr model, const std::string& filename)
+int convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 {
-    RModelIO::ObjModel2VCG om2vcg;
-    VCGObjModel::Ptr vmodel = om2vcg.create( model);
-    if ( vmodel == NULL)
+    std::string convexe;
+#ifdef IDTF_CONVERTER
+    convexe = IDTF_CONVERTER;
+#endif
+    std::ostringstream oss;
+    oss << convexe << " -en 1 -input " << idtffile << " -output " << u3dfile;
+    const std::string cmd = oss.str();
+
+    FILE* pipe = popen( cmd.c_str(), "r");
+    if ( !pipe)
+        return -1;
+
+    int retVal = 0;
+    try
     {
-        setErr( "[ERROR] RModelIO::U3DExporter::save: NULL VCGObjModel!");
-        return false;
+        char buffer[128];
+        std::string result = "";
+        while ( !feof(pipe))
+        {
+            if (fgets(buffer, 128, pipe) != NULL)
+                result += buffer;
+        }   // end while
+        std::cerr << result << std::endl;
+    }   // end try
+    catch ( const std::exception& e)
+    {
+        std::cerr << "Failed on read of byte from forked process " << cmd << std::endl;
+        std::cerr << e.what() << std::endl;
+        retVal = -2;
+    }   // end catch
+
+    pclose(pipe);
+    return retVal;
+}   // end convertIDTF2U3D
+
+
+// protected
+bool U3DExporter::doSave( const std::string& filename)
+{
+#ifndef IDTF_CONVERTER
+    std::cerr << "[ERROR] RModelIO::U3DExporter::doSave: U3D export unavailable; IDTF to U3D converter not defined!" << std::endl;
+    return false;
+#endif
+
+    bool savedOkay = true;
+
+    // First save to intermediate IDTF format.
+    bool delOnDestroy = true;
+#ifndef NDEBUG
+    delOnDestroy = false;
+#endif
+
+    const ObjModel::Ptr model = _model;
+    IDTFExporter idtfExporter( model, delOnDestroy);
+    const std::string idtffile = boost::filesystem::path(filename).stem().string() + ".idtf";
+    if ( !idtfExporter.save( idtffile))
+    {   
+        std::cerr << "[ERROR] RModelIO::U3DExporter::doSave: Export to intermediate IDTF format failed!" << std::endl;
+        setErr( idtfExporter.err());
+        savedOkay = false;
     }   // end if
-
-    // Need to set all the texture map filenames (if present) and save out the textures.
-    // Image files are saved in the same location alongside the model.
-    const std::vector<cv::Mat>& tmaps = om2vcg.getTextures();
-    typedef boost::filesystem::path Path;
-    const Path mpath( filename);
-    const Path dir = mpath.parent_path();  // Directory model is being saved in
-    const Path stem = mpath.stem();
-
-    const int nt = tmaps.size();
-    for ( int i = 0; i < nt; ++i)
+    else
     {
-        std::ostringstream oss;
-        oss << "_M" << i << ".bmp";
-        Path mfname = dir / stem / oss.str();
-        if ( !cv::imwrite( mfname.string(), tmaps[i]))
-            std::cerr << "[WARNING] RModelIO::U3DExporter::save: Unable to save texture map " << mfname << std::endl;
-        vmodel->textures[i] = mfname.filename().string();
-    }   // end for
+        const int res = convertIDTF2U3D( idtffile, filename);
+        const std::string ierr = "Unable to convert IDTF to U3D : ";
+        std::string xerr;
+        switch ( res)
+        {
+            case -1:
+                xerr = "Could not fork conversion process!";
+                break;
+            case -2:
+                xerr = "Failed to read byte data from forked process!";
+                break;
+        }   // end if
+        if ( res < 0)
+        {
+            setErr( ierr + xerr);
+            savedOkay = false;
+        }   // end if
+    }   // end else
 
-    const char* convLoc = dir.string().c_str();  // Do conversion in same directory as where model being saved
-    vcg::tri::io::u3dparametersclasses::Movie15Parameters<VCGObjModel> movParams;
-    const int mask = vcg::tri::io::ExporterU3D<VCGObjModel>::GetExportMaskCapability();
-
-    const int errCode = vcg::tri::io::ExporterU3D<VCGObjModel>::Save( *vmodel, filename.c_str(), convLoc, movParams, mask);
-    if ( errCode > 0)
-        setErr( vcg::tri::io::ExporterU3D<VCGObjModel>::ErrorMsg( errCode));
-    return errCode == 0;
+    return savedOkay;
 }   // end doSave
-
-

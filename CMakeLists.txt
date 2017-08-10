@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 2.8.11 FATAL_ERROR)
 project( rModelIO)
 
+#set(WITH_VCG TRUE)
 set(WITH_ASSIMP TRUE)
 set(WITH_LIBLAS FALSE)
-set(WITH_QT TRUE)   # Needed by VCG!
-set(WITH_VCG TRUE)
 set(WITH_RFEATURES TRUE)
+set(WITH_IDTF_CONVERTER TRUE)
+set(WITH_PDFLATEX_PROCESSOR TRUE)
 include( "cmake/LibCommon.cmake")
 
 set( INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
@@ -16,10 +17,12 @@ set( INCLUDE_FILES
     #"${INCLUDE_DIR}/AAMReader.h"
     "${INCLUDE_DIR}/AssetImporter.h"
     "${INCLUDE_DIR}/AssetExporter.h"
+    "${INCLUDE_DIR}/IDTFExporter.h"
     #"${INCLUDE_DIR}/LASImporter.h"
+    "${INCLUDE_DIR}/LaTeXExporter.h"
     "${INCLUDE_DIR}/ObjModelExporter.h"
     "${INCLUDE_DIR}/ObjModelImporter.h"
-    "${INCLUDE_DIR}/ObjModel2VCG.h"
+    #"${INCLUDE_DIR}/ObjModel2VCG.h"
     "${INCLUDE_DIR}/U3DExporter.h"
     "${INCLUDE_DIR}/VCGTypes.h"
     )
@@ -28,10 +31,12 @@ set( SRC_FILES
     #${SRC_DIR}/AAMReader
     ${SRC_DIR}/AssetImporter
     ${SRC_DIR}/AssetExporter
+    ${SRC_DIR}/IDTFExporter
     #${SRC_DIR}/LASImporter
+    ${SRC_DIR}/LaTeXExporter
     ${SRC_DIR}/ObjModelExporter
     ${SRC_DIR}/ObjModelImporter
-    ${SRC_DIR}/ObjModel2VCG
+    #${SRC_DIR}/ObjModel2VCG
     ${SRC_DIR}/U3DExporter
     )
 

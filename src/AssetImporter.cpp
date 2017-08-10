@@ -197,7 +197,7 @@ void setObjectTextureCoordinates( const aiMesh* mesh, int matId, const std::vect
         const aiVector3D& aiuv2 = mesh->mTextureCoords[0][aiFaceVtxIdxs[2]];
         const cv::Vec2f uvs[3] = { cv::Vec2f( aiuv0[0], aiuv0[1]), cv::Vec2f( aiuv1[0], aiuv1[1]), cv::Vec2f( aiuv2[0], aiuv2[1])};
         const int vs[3] = {vidxs[aiFaceVtxIdxs[0]], vidxs[aiFaceVtxIdxs[1]], vidxs[aiFaceVtxIdxs[2]]};
-        model->setOrderedFaceTextureOffsets( matId, fids[i], vs, uvs);
+        model->setOrderedFaceUVs( matId, fids[i], vs, uvs);
     }   // end for
 }   // end setObjectTextureCoordinates
 

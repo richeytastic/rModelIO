@@ -16,7 +16,7 @@
  ************************************************************************/
 
 /**
- * Export model data in U3D format using the VGC library.
+ * Export model data to U3D format.
  * Richard Palmer
  * August 2017
  */
@@ -36,7 +36,7 @@ public:
     virtual ~U3DExporter(){}
 
 protected:
-    virtual bool doSave( const RFeatures::ObjModel::Ptr, const std::string& filename);
+    virtual bool doSave( const std::string& filename);
 };  // end class
 
 }   // end namespace

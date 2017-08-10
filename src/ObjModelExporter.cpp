@@ -36,5 +36,5 @@ bool ObjModelExporter::save( const std::string& fname)
         return false;
     }   // end if
 
-    return doSave( _model, fname);    // virtual
+    return doSave( fname);    // virtual
 }   // end save
