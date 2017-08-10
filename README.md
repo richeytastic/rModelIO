@@ -9,6 +9,6 @@ Wraps the Open Asset Importer libraries
     - *UNCHECK* `ASSIMP_BUILD_TESTS`
     - *UNCHECK* `ASSIMP_BUILD_ASSIMP_VIEW` (references deprecated DirectX SDK)
 
-[](- [vcglib](http://vcg.isti.cnr.it/vcglib))
-[](- Converting to VCG datatype for use developing other functionality.)
+[//](- [vcglib](http://vcg.isti.cnr.it/vcglib))
+[//](- Converting to VCG datatype for use developing other functionality.)
 - [rFeatures](../../../rFeatures)
