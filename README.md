@@ -9,4 +9,13 @@ Wraps the Open Asset Importer libraries
     - *UNCHECK* `ASSIMP_BUILD_TESTS`
     - *UNCHECK* `ASSIMP_BUILD_ASSIMP_VIEW` (references deprecated DirectX SDK)
 
+- [pdflatex]
+
+    Part of the [MiKTeK](https://miktex.org/) distribution on Windows, but usually
+    installed in /usr/bin if installed systemwide on Linux as part of
+    [TeX Live](https://www.tug.org/texlive/)
+
+- [IDTFConverter](www2.iaas.msu.ru/tmp/u3d/u3d-1.4.5_current.zip)
+    (with thanks to Michail Vidiassov)
+
 - [rFeatures](../../../rFeatures)
