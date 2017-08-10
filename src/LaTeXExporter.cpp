@@ -78,7 +78,8 @@ bool LaTeXExporter::insert( std::ostream& os, const std::string& u3dfile) const
     }   // end if
 
     const cv::Vec3f& coo = _cam.focus;
-    cv::Vec3f c2c = _cam.pos - coo;
+    const cv::Vec3f& cpos = _cam.pos;
+    cv::Vec3f c2c = cpos - coo;
     const float roo = cv::norm(c2c);
     cv::normalize( c2c, c2c); // Doesn't need normalizing, but such things are habitual...
 
@@ -93,12 +94,12 @@ bool LaTeXExporter::insert( std::ostream& os, const std::string& u3dfile) const
     os << "\tactivate=" << (_activeOnOpen ? "pageopen" : "click") << "," << std::endl;
     os << "\tplaybutton=plain,    \% plain | fancy (default) | none" << std::endl;
     os << "\t3Dlights=Hard," << std::endl;
+    os << "\t3Dbg=1 1 1,          \% background colour of scene (r g b) \\in [0,1] (can't set transparency if set)" << std::endl;
     os << "\t3Dcoo=" << coo[0] << " " << coo[1] << " " << coo[2] << ",         \% centre of orbit of the camera (x y z)" << std::endl;
     os << "\t3Dc2c=" << c2c[0] << " " << c2c[1] << " " << c2c[2] << ",         \% direction to camera from coo" << std::endl;
-    os << "\t3Droll=0,            \% clockwise roll in degrees around optical axis" << std::endl;
+    os << "\t3Droll=0,           \% clockwise roll in degrees around optical axis" << std::endl;
     os << "\t3Droo=" << std::left << std::fixed << std::setprecision(3) << roo << ",        % radius of obrbit" << std::endl;
-    os << "\t3Daac=" << std::left << std::fixed << std::setprecision(3) << _cam.fov << ",        \% perspective fov in degrees" << std::endl;
-    os << "\t3Dbg=1 1 1           \% background colour of scene (r g b) \\in [0,1] (can't set transparency if set)" << std::endl;
+    os << "\t3Daac=" << std::left << std::fixed << std::setprecision(3) << _cam.fov << "         \% perspective fov in degrees" << std::endl;
     os << "\t]{}{" << u3dfile << "}" << std::endl;
     os << "\\caption{``" << caption << "''}" << std::endl;
     if ( !_figLabel.empty())

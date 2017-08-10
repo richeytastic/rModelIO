@@ -433,7 +433,8 @@ private:
                 const int uv1 = getUVListIndex( fid, 1);
                 const int uv2 = getUVListIndex( fid, 2);
                 os << tttt << "FACE " << i << " {" << n;
-                os << ttttt << "TEXTURE_LAYER 0 TEX_COORD: " << uv0 << " " << uv1 << " " << uv2 << n;
+                os << ttttt << "TEXTURE_LAYER 0 TEX_COORD: " << std::fixed << std::setprecision(6)
+                                                             << uv0 << " " << uv1 << " " << uv2 << n;
                 os << tttt << "}" << n; // end FACE i
             }   // end if
             i++;
@@ -448,11 +449,11 @@ private:
         TB ttt(3), tttt(4);
         NL n(1);
         os << ttt << "MODEL_POSITION_LIST {" << n;
-        int k = 0;
+        os << std::fixed << std::setprecision(6);
         BOOST_FOREACH ( int vid, _vidv)
         {
             const cv::Vec3f& v = _model->vtx(vid);
-            os << tttt << std::fixed << v[0] << " " << v[1] << " " << v[2] << n;
+            os << tttt << v[0] << " " << v[1] << " " << v[2] << n;
         }   // end foreach
         os << ttt << "}" << n;  // end MODEL_POSITION_LIST
     }   // end writePositionList
@@ -465,6 +466,7 @@ private:
         TB ttt(3), tttt(4);
         NL n(1);
         os << ttt << "MODEL_NORMAL_LIST {" << n;
+        os << std::fixed << std::setprecision(6);
         BOOST_FOREACH ( int fid, _fidv)
         {
             os << tttt << nrm[0] << " " << nrm[1] << " " << nrm[2] << n;
@@ -483,6 +485,7 @@ private:
         TB ttt(3), tttt(4);
         NL n(1);
         os << ttt << "MODEL_TEXTURE_COORD_LIST {" << n;
+        os << std::fixed << std::setprecision(6);
         BOOST_FOREACH ( const cv::Vec2f* uv, _uvlist)
             os << tttt << std::fixed << (*uv)[0] << " " << (*uv)[1] << " " << 0.0 << " " << 0.0 << n;
         os << ttt << "}" << n;  // end MODEL_TEXTURE_COORD_LIST
