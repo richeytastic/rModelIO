@@ -274,7 +274,7 @@ struct ModelResource
                     if ( _uvmap.count(key) == 0)
                     {
                         _uvmap[key] = (int)_uvlist.size();  // Hash the array index
-                        _uvlist.push_back( &_model->uv( mid, uvids[i]));
+                        _uvlist.push_back( &_model->uv( (int)mid, uvids[i]));
                     }   // end if
                 }   // end for
             }   // end if
@@ -339,7 +339,7 @@ private:
         TB ttt(3), tttt(4), ttttt(5), tttttt(6);
         NL n(1);
         const bool hasTX = !_mmap.empty();
-        const int nTX = std::max(size_t(1),_mmap.size());
+        const int nTX = (int)std::max(size_t(1),_mmap.size());
         os << ttt << "MODEL_SHADING_DESCRIPTION_LIST {" << n;
         for ( size_t i = 0; i < nTX; ++i)
         {
@@ -497,9 +497,9 @@ private:
 // Write the model data in IDTF format. Only vertex, face, and texture mapping info are stored.
 std::string writeFile( const ObjModel::Ptr model, const std::string& filename, const std::vector<std::pair<int, std::string> >& mtf)
 {
-    const size_t nTX = mtf.size();
+    const int nTX = (int)mtf.size();
     boost::unordered_map<int,int> mmap; // For mapping ObjModel material ID to ascending material index as stored in file.
-    for ( size_t i = 0; i < nTX; ++i)  // One to one mapping of shaders to texture maps
+    for ( int i = 0; i < nTX; ++i)  // One to one mapping of shaders to texture maps
         mmap[mtf[i].first] = i;     // Usually this will be i-->i but possible that it won't be in future (if material ID values change)
 
     std::string errMsg;

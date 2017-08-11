@@ -5,8 +5,14 @@ project( rModelIO)
 set(WITH_ASSIMP TRUE)
 set(WITH_LIBLAS FALSE)
 set(WITH_RFEATURES TRUE)
-set(WITH_IDTF_CONVERTER TRUE)
-set(WITH_PDFLATEX_PROCESSOR TRUE)
+
+# Don't set these true here because the library shouldn't be compiled
+# with build machine references to IDTFConverter and pdflatex!
+# Ensure that these are set TRUE for application CMakeFiles though,
+# and set the corresponding CMake variables to paths for these
+# programs that are relative to the binary being built / installed.
+set(WITH_IDTF_CONVERTER FALSE)
+set(WITH_PDFLATEX_PROCESSOR FALSE)
 include( "cmake/LibCommon.cmake")
 
 set( INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
@@ -19,10 +25,10 @@ set( INCLUDE_FILES
     "${INCLUDE_DIR}/AssetExporter.h"
     "${INCLUDE_DIR}/IDTFExporter.h"
     #"${INCLUDE_DIR}/LASImporter.h"
-    "${INCLUDE_DIR}/LaTeXExporter.h"
     "${INCLUDE_DIR}/ObjModelExporter.h"
     "${INCLUDE_DIR}/ObjModelImporter.h"
     #"${INCLUDE_DIR}/ObjModel2VCG.h"
+    "${INCLUDE_DIR}/PDFGenerator.h"
     "${INCLUDE_DIR}/U3DExporter.h"
     #"${INCLUDE_DIR}/VCGTypes.h"
     )
@@ -33,10 +39,10 @@ set( SRC_FILES
     ${SRC_DIR}/AssetExporter
     ${SRC_DIR}/IDTFExporter
     #${SRC_DIR}/LASImporter
-    ${SRC_DIR}/LaTeXExporter
     ${SRC_DIR}/ObjModelExporter
     ${SRC_DIR}/ObjModelImporter
     #${SRC_DIR}/ObjModel2VCG
+    ${SRC_DIR}/PDFGenerator
     ${SRC_DIR}/U3DExporter
     )
 

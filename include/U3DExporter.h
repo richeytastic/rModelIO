@@ -16,7 +16,15 @@
  ************************************************************************/
 
 /**
- * Export model data to U3D format.
+ * Export RFeatures::ObjModel objects to U3D format via creation
+ * of IDTF files (see RModelIO::IDTFExporter).
+ *
+ * Static member IDTFConverter must be set to the IDTFConverter executable
+ * that can convert .idtf files to .u3d files. Can be found at
+ * https://www2.iaas.msu.ru/tmp/u3d/ (thanks to Michail Vidiassov).
+ * If IDTFConverter is empty upon construction, a warning is shown to
+ * stderr and U3D export functionality for the instance will be disabled.
+ *
  * Richard Palmer
  * August 2017
  */
@@ -32,6 +40,8 @@ namespace RModelIO
 class rModelIO_EXPORT U3DExporter : public ObjModelExporter
 {
 public:
+    static std::string IDTFConverter;   // Must be set before use
+
     explicit U3DExporter( const RFeatures::ObjModel::Ptr);
     virtual ~U3DExporter(){}
 

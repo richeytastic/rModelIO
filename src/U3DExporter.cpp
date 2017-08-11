@@ -20,42 +20,47 @@
 #include <cassert>
 #include <iostream>
 #include <sstream>
-#include <cstdio>   // popen
+#include <cstdlib>  // system (WIN32)
+#include <cstdio>   // popen (UNIX)
 #include <boost/filesystem/operations.hpp>
 using RModelIO::IDTFExporter;
 using RModelIO::U3DExporter;
 using RFeatures::ObjModel;
 
 
+std::string U3DExporter::IDTFConverter; // public static
+
+
 // public
-U3DExporter::U3DExporter( const ObjModel::Ptr mod) : RModelIO::ObjModelExporter(mod)
+U3DExporter::U3DExporter( const ObjModel::Ptr mod)
+    : RModelIO::ObjModelExporter(mod)
 {
-#ifdef IDTF_CONVERTER
-    addSupported( "u3d", "Universal 3D");
-    std::cout << "IDTFConverter defined as " << IDTF_CONVERTER << std::endl;
-#else
-    std::cerr << "[ERROR] RModelIO::U3DExporter: U3D export unavailable; IDTF to U3D converter not defined!" << std::endl;
-#endif
+    if ( IDTFConverter.empty())
+        std::cerr << "[WARNING] RModelIO::U3DExporter: U3D export disabled; IDTFConverter not set!" << std::endl;
+    else
+    {
+        addSupported( "u3d", "Universal 3D");
+        std::cout << "[STATUS] RModelIO::U3DExporter using IDTFConverter at " << IDTFConverter << std::endl;
+    }   // end else
 }   // end ctor
 
 
 int convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 {
-    std::string convexe;
-#ifdef IDTF_CONVERTER
-    convexe = IDTF_CONVERTER;
-#endif
-    std::ostringstream oss;
-    oss << convexe << " -en 1 -input " << idtffile << " -output " << u3dfile;
-    const std::string cmd = oss.str();
-
-    FILE* pipe = popen( cmd.c_str(), "r");
-    if ( !pipe)
-        return -1;
-
+    // Enclose command in quotes due to possibility of spaces in Windows path
+    const std::string cmd = "\"" + U3DExporter::IDTFConverter + "\" -en 1 -input " + idtffile + " -output " + u3dfile;
     int retVal = 0;
+
     try
     {
+#ifdef _WIN32
+        retVal = system(cmd.c_str());
+        std::cerr << "Returned from system with value " << retVal << std::endl;
+#else
+        FILE* pipe = popen( cmd.c_str(), "r");
+        if ( !pipe)
+            return -1;
+
         char buffer[128];
         std::string result = "";
         while ( !feof(pipe))
@@ -64,6 +69,8 @@ int convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
                 result += buffer;
         }   // end while
         std::cerr << result << std::endl;
+        pclose(pipe);
+#endif
     }   // end try
     catch ( const std::exception& e)
     {
@@ -72,7 +79,6 @@ int convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
         retVal = -2;
     }   // end catch
 
-    pclose(pipe);
     return retVal;
 }   // end convertIDTF2U3D
 
@@ -80,19 +86,10 @@ int convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 // protected
 bool U3DExporter::doSave( const std::string& filename)
 {
-#ifndef IDTF_CONVERTER
-    std::cerr << "[ERROR] RModelIO::U3DExporter::doSave: U3D export unavailable; IDTF to U3D converter not defined!" << std::endl;
-    return false;
-#endif
-
     bool savedOkay = true;
 
     // First save to intermediate IDTF format.
     bool delOnDestroy = true;
-#ifndef NDEBUG
-    delOnDestroy = false;
-#endif
-
     const ObjModel::Ptr model = _model;
     IDTFExporter idtfExporter( model, delOnDestroy);
     const std::string idtffile = boost::filesystem::path(filename).stem().string() + ".idtf";

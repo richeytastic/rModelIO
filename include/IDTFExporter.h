@@ -35,7 +35,7 @@ public:
     // not necessary to leave the produced files on the filesystem post conversion. If
     // desired, set delFiles to delete from the filesystem the produced IDTF file and
     // any saved tga images (ObjModel material textures) upon any new call to save,
-    // or upon destruction of this object.
+    // or upon destruction of this object. See RModelIO::U3DExporter.
     IDTFExporter( const RFeatures::ObjModel::Ptr, bool delFiles=false);
 
     virtual ~IDTFExporter();

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.11)
 PROJECT( u3d)
 
 set(WITH_TESTUTILS TRUE)
+set(WITH_IDTF_CONVERTER TRUE)
+set(WITH_PDFLATEX_PROCESSOR TRUE)
 include( "$ENV{DEV_PARENT_DIR}/libbuild/cmake/LibCommon.cmake")
 
 set( INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")

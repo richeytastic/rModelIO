@@ -98,7 +98,7 @@ void setMesh( aiMesh* mesh, const ObjModel::Ptr model)
     const int mid = mesh->mMaterialIndex;
     const IntSet& mfaceIds = model->getMaterialFaceIds( mid);
 
-    const int nverts = 3 * mfaceIds.size();
+    const int nverts = 3 * (int)mfaceIds.size();
     mesh->mNumVertices = nverts;
     mesh->mVertices = new aiVector3D[nverts];
     mesh->mNumUVComponents[0] = nverts;
@@ -130,7 +130,7 @@ void setMesh( aiMesh* mesh, const ObjModel::Ptr model)
     }   // end foreach
 
     // Set the faces in the mesh
-    mesh->mNumFaces = mfaceIds.size();
+    mesh->mNumFaces = (unsigned int)mfaceIds.size();
     mesh->mFaces = new aiFace[mfaceIds.size()];
 
     i = 0;
