@@ -18,8 +18,10 @@
 #include <PDFGenerator.h>
 #include <U3DExporter.h>
 #include <boost/filesystem/operations.hpp>
-#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/process.hpp>
 #include <boost/foreach.hpp>
+#include <cassert>
 #include <fstream>
 #include <iomanip>
 #include <cerrno>
@@ -30,17 +32,14 @@ using RModelIO::U3DExporter;
 using RFeatures::ObjModel;
 typedef RFeatures::CameraParams Cam;
 
-
-std::string PDFGenerator::pdflatex;
+std::string PDFGenerator::pdflatex; // public static
 
 
 // public
 PDFGenerator::PDFGenerator( bool remGen) : _remGen(remGen)
 {
-    if ( pdflatex.empty())
-        std::cerr << "[WARNING] RModelIO::PDFGenerator: PDF export disabled until pdflatex set" << std::endl;
-    else
-        std::cerr << "[STATUS] RModelIO::PDFGenerator using pdflatex at " << pdflatex << std::endl;
+    if ( PDFGenerator::pdflatex.empty())
+        PDFGenerator::pdflatex = "pdflatex";
 }   // end ctor
 
 
@@ -55,58 +54,49 @@ PDFGenerator::~PDFGenerator()
 // public
 bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
 {
-    if ( pdflatex.empty())
+    namespace bp = boost::process;
+    const boost::filesystem::path genpath = bp::search_path(PDFGenerator::pdflatex);
+    if ( genpath.empty())
+    {
+        std::cerr << "[WARNING] RModelIO::PDFGenerator: pdflatex not in the path! PDF generation disabled." << std::endl;
         return false;
+    }   // end if
 
-    const std::string stem = boost::filesystem::path(texfile).stem().string();
-
-    // Enclosing pdflatex command in quotes since Windows paths often have spaces
+    const boost::filesystem::path tpath = texfile;
+    const std::string stem = tpath.stem().string();
     bool success = false;
-    const std::string cmd = "\"" + pdflatex + "\" -interaction batchmode \"" + texfile + "\"";
-    int errsv = 0;
-    std::string errMsg;
-    std::cerr << "Generating PDF from " << texfile;
+    std::ostringstream errMsg;
+    std::cerr << "Attempting to generate PDF from " << texfile << std::endl;
 
     try
     {
-#ifdef _WIN32
-        const int retVal = system( cmd.c_str());
-        success = retVal == 0;
-        if ( !success)
-            errMsg = "[ERROR] RModelIO::PDFGenerator::operator():";
-#else
-        FILE* pipe = popen( cmd.c_str(), "r");
-        if (!pipe)
-            errMsg = "[ERROR] RModelIO::PDFGenerator::operator(): unable to open pipe;";
-        else if ( pclose(pipe) < 0)
-        {
-            errsv = errno;
-            errMsg = "[ERROR] RModelIO::PDFGenerator::operator(): unable to close pipe;";
-        }   // end if
+        // Annoyingly, Windows MiKTeX installs itself with .../MiKTeX 2.9/... in the filepath!!!
+        // boost::process doesn't seem to handle this too well - it starts the process but then
+        // pdflatex fails due to (apparently) parsing the program name as two separate tokens.
+        // This doesn't appear to be an issue with pdflatex itself since the problem doesn't crop
+        // up when running pdflatex on cmd line using its fully qualified path (with enclosing
+        // quotes). Tried enclosing with escaped quotes in the pathname, but that didn't work
+        // either. So doing it this way!
+        //bp::child c(genpath, "-interaction", "batchmode", texfile, bp::std_out > stdout, bp::std_err > stderr);
+        bp::child c( genpath.filename().string() + " -interaction batchmode " + texfile);
+        c.wait();
+        success = c.exit_code() == 0;
+        if ( success)
+            std::cerr << "Generated " << tpath.stem().string() << ".pdf" << std::endl;
         else
-        {
-            std::cerr << " >> " << stem << ".pdf" << std::endl;
-            success = true;
-        }   // end else
-#endif
+            errMsg << "[ERROR] RModelIO::PDFGenerator::operator(): Child process exited with " << c.exit_code();
     }   // end try
     catch ( const std::exception& e)
     {
-        errMsg = "[EXCEPTION!] RModelIO::PDFGenerator::operator():" + std::string(e.what());
+        errMsg << "[EXCEPTION!] RModelIO::PDFGenerator::operator():" << e.what();
         success = false;
     }   // end ctch
 
-    if ( !errMsg.empty())
-    {
-        std::cerr << " !FAILED!" << std::endl;
-        std::cerr << errMsg << "; failed to execute " << cmd;
-        if ( errsv > 0)
-            std::cerr << " (errno: " << errsv;
-        std::cerr << std::endl;
-    }   // end if
+    if ( !errMsg.str().empty())
+        std::cerr << errMsg.str() << std::endl;
 
     bool remGen = _remGen;
-    // Don't remove pdflatex operator()d files on failure if this is a debug build
+    // Don't remove pdflatex generatedd files on failure if this is a debug build
 #ifndef NDEBUG
     remtexfile = false; // Ensure the .tex file is never removed in debug mode
     if ( !success && _remGen)
@@ -122,7 +112,10 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
 
     // Remove the input .tex file?
     if ( success && remtexfile)
+    {
         boost::filesystem::remove(texfile);
+        std::cerr << "Removed " << texfile << std::endl;
+    }   // end if
 
     return success;
 }   // end operator()
@@ -156,23 +149,12 @@ PDFGenerator::LaTeXU3DInserter::LaTeXU3DInserter( float fw, float fh,
 PDFGenerator::LaTeXU3DInserter::~LaTeXU3DInserter()
 {
     BOOST_FOREACH ( const std::string& tmpfile, _delfiles)
+    {
         boost::filesystem::remove( tmpfile);
+        std::cerr << "Removed " << tmpfile << std::endl;
+    }   // end foreach
     _delfiles.clear();
 }   // end dtor
-
-
-// public
-void PDFGenerator::LaTeXU3DInserter::setDimensions( float fw, float fh)
-{
-    _fw = fw;
-    _fh = fh;
-}   // end setDimensions
-
-// public
-void PDFGenerator::LaTeXU3DInserter::setCamera( const Cam& cam) { _cam = cam;}
-void PDFGenerator::LaTeXU3DInserter::setCaption( const std::string& cap) { _figCap = cap;}
-void PDFGenerator::LaTeXU3DInserter::setLabel( const std::string& lab) { _figLab = lab;}
-void PDFGenerator::LaTeXU3DInserter::setActivateOnOpen( bool aoo) { _actOnOpen = aoo;}
 
 
 // public
@@ -196,7 +178,11 @@ bool PDFGenerator::LaTeXU3DInserter::setModel( const ObjModel::Ptr model)
 {
     bool setokay = false;
     const std::string u3dtmp = boost::filesystem::unique_path().string() + ".u3d";
+#ifndef NDEBUG
+    U3DExporter u3dxptr(model,false);
+#else
     U3DExporter u3dxptr(model);
+#endif
     if ( !u3dxptr.save( u3dtmp))
     {
         std::cerr << u3dxptr.err() << std::endl;

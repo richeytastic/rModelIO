@@ -13,11 +13,6 @@ using RModelIO::PDFGenerator;
 #ifndef IDTF_CONVERTER
 #define IDTF_CONVERTER ""
 #endif
-#ifndef PDFLATEX_PROCESSOR
-#define PDFLATEX_PROCESSOR ""
-#endif
-
-
 
 // Return the distance of the most extreme vertex on the model from it's average position.
 float getMaxRad( const ObjModel::Ptr model)
@@ -92,15 +87,11 @@ bool writeDoc( PDFGenerator& pdfgen, const std::string& texfile, const ObjModel:
 int main( int argc, char** argv)
 {
     RModelIO::U3DExporter::IDTFConverter = IDTF_CONVERTER;
-    PDFGenerator::pdflatex = PDFLATEX_PROCESSOR;
-    if ( std::string(IDTF_CONVERTER).empty() || std::string(PDFLATEX_PROCESSOR).empty())
+    if ( std::string(IDTF_CONVERTER).empty())
     {
-        std::cerr << "pdflatex and/or IDTFConverter not set! Exiting..." << std::endl;
+        std::cerr << "IDTFConverter not set! Exiting..." << std::endl;
         return EXIT_FAILURE;
     }   // end if
-
-    std::cerr << "IDTFConverter: " << IDTF_CONVERTER << std::endl;
-    std::cerr << "pdflatex:      " << PDFLATEX_PROCESSOR << std::endl;
 
     RFeatures::ObjModel::Ptr model;
     std::string pdffile = "tst.pdf";

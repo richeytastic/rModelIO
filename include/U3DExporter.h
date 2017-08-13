@@ -42,11 +42,17 @@ class rModelIO_EXPORT U3DExporter : public ObjModelExporter
 public:
     static std::string IDTFConverter;   // Must be set before use
 
-    explicit U3DExporter( const RFeatures::ObjModel::Ptr);
+    // U3D conversion produces an IDTF file and a tga texture.
+    // Normally, both of these are destroyed immediately after
+    // the U3D model is saved. Set delOnDestroy to false to
+    // retain these files.
+    explicit U3DExporter( const RFeatures::ObjModel::Ptr, bool delOnDestroy=true);
     virtual ~U3DExporter(){}
 
 protected:
     virtual bool doSave( const std::string& filename);
+private:
+    const bool _delOnDestroy;
 };  // end class
 
 }   // end namespace

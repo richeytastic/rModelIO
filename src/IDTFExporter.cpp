@@ -54,7 +54,7 @@ void IDTFExporter::reset()
         if ( exists( ffile) && is_regular_file( ffile))
         {
             remove( ffile);
-            std::cout << "Removed IDTF file" << std::endl;
+            std::cerr << "Removed " << ffile << std::endl;
         }   // end if
 
         BOOST_FOREACH ( const std::string& tgafile, _tgafiles)
@@ -63,7 +63,7 @@ void IDTFExporter::reset()
             if ( exists( ifile) && is_regular_file(ifile))
             {
                 remove( ifile);
-                std::cout << "Removed tga file (IDTF conversion)" << std::endl;
+                std::cerr << "Removed " << ifile << " (IDTF conversion)" << std::endl;
             }   // end if
         }   // end foreach
     }   // end _delOnDtor

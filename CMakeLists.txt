@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 2.8.11 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+
 project( rModelIO)
 
 #set(WITH_VCG TRUE)
@@ -6,14 +7,11 @@ set(WITH_ASSIMP TRUE)
 set(WITH_LIBLAS FALSE)
 set(WITH_RFEATURES TRUE)
 
-# Don't set these true here because the library shouldn't be compiled
-# with build machine references to IDTFConverter and pdflatex!
-# Ensure that these are set TRUE for application CMakeFiles though,
-# and set the corresponding CMake variables to paths for these
-# programs that are relative to the binary being built / installed.
+# Don't set true here because the library shouldn't be compiled
+# with host references to IDTFConverter. Ensure set TRUE for app
+# CMakeFiles and set the corresponding variable in CMake.
 set(WITH_IDTF_CONVERTER FALSE)
-set(WITH_PDFLATEX_PROCESSOR FALSE)
-include( "cmake/LibCommon.cmake")
+include( "cmake/FindLibs.cmake")
 
 set( INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 set( SRC_DIR "${PROJECT_SOURCE_DIR}/src")
@@ -47,4 +45,4 @@ set( SRC_FILES
     )
 
 add_library( ${PROJECT_NAME} ${SRC_FILES} ${INCLUDE_FILES})
-include( "cmake/LibInstall.cmake")
+include( "cmake/LinkLibs.cmake")

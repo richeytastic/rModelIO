@@ -23,6 +23,7 @@
 #include <cstdlib>  // system (WIN32)
 #include <cstdio>   // popen (UNIX)
 #include <boost/filesystem/operations.hpp>
+#include <boost/process.hpp>    // Requires at least boost 1.64+
 using RModelIO::IDTFExporter;
 using RModelIO::U3DExporter;
 using RFeatures::ObjModel;
@@ -32,8 +33,8 @@ std::string U3DExporter::IDTFConverter; // public static
 
 
 // public
-U3DExporter::U3DExporter( const ObjModel::Ptr mod)
-    : RModelIO::ObjModelExporter(mod)
+U3DExporter::U3DExporter( const ObjModel::Ptr mod, bool delOnDestroy)
+    : RModelIO::ObjModelExporter(mod), _delOnDestroy(delOnDestroy)
 {
     if ( IDTFConverter.empty())
         std::cerr << "[WARNING] RModelIO::U3DExporter: U3D export disabled; IDTFConverter not set!" << std::endl;
@@ -45,41 +46,33 @@ U3DExporter::U3DExporter( const ObjModel::Ptr mod)
 }   // end ctor
 
 
-int convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
+bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 {
-    // Enclose command in quotes due to possibility of spaces in Windows path
-    const std::string cmd = "\"" + U3DExporter::IDTFConverter + "\" -en 1 -input " + idtffile + " -output " + u3dfile;
-    int retVal = 0;
-
+    bool success = false;
     try
     {
-#ifdef _WIN32
-        retVal = system(cmd.c_str());
-        std::cerr << "Returned from system with value " << retVal << std::endl;
-#else
-        FILE* pipe = popen( cmd.c_str(), "r");
-        if ( !pipe)
-            return -1;
-
-        char buffer[128];
-        std::string result = "";
-        while ( !feof(pipe))
-        {
-            if (fgets(buffer, 128, pipe) != NULL)
-                result += buffer;
-        }   // end while
-        std::cerr << result << std::endl;
-        pclose(pipe);
-#endif
+        std::ostringstream cmd;
+        cmd << "\"" << U3DExporter::IDTFConverter << "\""
+            << " -pq 1000"  // Position quality MAX
+            << " -tcq 1000" // Texture coordinates quality MAX
+            << " -gq 1000"  // Geometry quality MAX
+            << " -tq 100"   // Texture quality MAX
+            << " -en 1"     // Enable normals exclusion 
+            << " -eo 65535" // Export everything
+            << " -input " << idtffile
+            << " -output " << u3dfile;
+        boost::process::child c( cmd.str());
+        c.wait();
+        success = c.exit_code() == 0;
     }   // end try
     catch ( const std::exception& e)
     {
-        std::cerr << "Failed on read of byte from forked process " << cmd << std::endl;
+        std::cerr << "Failed on read of byte from forked process " << std::endl;
         std::cerr << e.what() << std::endl;
-        retVal = -2;
+        success = false;
     }   // end catch
 
-    return retVal;
+    return success;
 }   // end convertIDTF2U3D
 
 
@@ -89,36 +82,19 @@ bool U3DExporter::doSave( const std::string& filename)
     bool savedOkay = true;
 
     // First save to intermediate IDTF format.
-    bool delOnDestroy = true;
     const ObjModel::Ptr model = _model;
-    IDTFExporter idtfExporter( model, delOnDestroy);
+    IDTFExporter idtfExporter( model, _delOnDestroy);
     const std::string idtffile = boost::filesystem::path(filename).stem().string() + ".idtf";
     if ( !idtfExporter.save( idtffile))
     {   
-        std::cerr << "[ERROR] RModelIO::U3DExporter::doSave: Export to intermediate IDTF format failed!" << std::endl;
         setErr( idtfExporter.err());
         savedOkay = false;
     }   // end if
-    else
+    else if ( !convertIDTF2U3D( idtffile, filename))
     {
-        const int res = convertIDTF2U3D( idtffile, filename);
-        const std::string ierr = "Unable to convert IDTF to U3D : ";
-        std::string xerr;
-        switch ( res)
-        {
-            case -1:
-                xerr = "Could not fork conversion process!";
-                break;
-            case -2:
-                xerr = "Failed to read byte data from forked process!";
-                break;
-        }   // end if
-        if ( res < 0)
-        {
-            setErr( ierr + xerr);
-            savedOkay = false;
-        }   // end if
-    }   // end else
+        setErr("Unable to convert IDTF to U3D!");
+        savedOkay = false;
+    }   // end if
 
     return savedOkay;
 }   // end doSave
