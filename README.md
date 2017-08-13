@@ -1,5 +1,6 @@
 # rModelIO
-Wraps the Open Asset Importer libraries
+Import/export 3D models from/to various formats, and provides cross platform functionality
+to export 3D models to PDF (via suitable pdflatex processor).
 
 ## Prerequisites
 - [AssImp](https://github.com/assimp)
