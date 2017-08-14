@@ -117,7 +117,8 @@ int main( int argc, char** argv)
         pdffile = boost::filesystem::path( argv[1]).stem().string() + ".pdf";
     }   // end if
 
-    //model->showDebug( model->getNumFaces() < 20); // Show model debug info (in detail if model faces < 20)
+    //model->mergeMaterials();
+    model->showDebug( model->getNumFaces() < 20); // Show model debug info (in detail if model faces < 20)
 
     // Show the model and return the camera parameters when user exits the viewer.
     const RFeatures::CameraParams camera = showModel( argc, argv, model);

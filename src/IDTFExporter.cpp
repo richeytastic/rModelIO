@@ -578,7 +578,17 @@ bool IDTFExporter::doSave( const std::string& filename)
     tpath /= mpath.stem();             // Use the stem of the save filename as the basis for the texture filenames
 
     std::vector<std::pair<int, std::string> > mtf;  // Associate the texture filenames with the material ID
-    const ObjModel::Ptr model = _model;
+    ObjModel::Ptr model;
+    if ( _model->getNumMaterials() <= 1)
+        model = _model;
+    else
+    {
+        std::cerr << "[STATUS] RModelIO::IDTFExporter::doSave: Multi-material model being cloned to single material model for export" << std::endl;
+        ObjModel::Ptr nmodel = _model->clone(false);
+        nmodel->mergeMaterials();
+        model = nmodel;
+    }   // end else
+
     const IntSet& mids = model->getMaterialIds();
     BOOST_FOREACH ( int mid, mids)
     {
