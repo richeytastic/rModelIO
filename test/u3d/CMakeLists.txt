@@ -23,5 +23,7 @@ include( "$ENV{DEV_PARENT_DIR}/libbuild/cmake/ExeInstall.cmake")
 
 get_target_property( exedir ${PROJECT_NAME} RUNTIME_OUTPUT_DIRECTORY)
 file( COPY "${TestUtils_ROOT_DIR}/tx0.png" DESTINATION "${exedir}")
+file( COPY "${TestUtils_ROOT_DIR}/tx1.png" DESTINATION "${exedir}")
+file( COPY "${TestUtils_ROOT_DIR}/tx2.png" DESTINATION "${exedir}")
 file( COPY "${PROJECT_SOURCE_DIR}/doc" DESTINATION "${PROJECT_BINARY_DIR}")
 

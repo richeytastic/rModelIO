@@ -48,6 +48,10 @@ RFeatures::CameraParams showModel( int argc, char** argv, const ObjModel::Ptr mo
 
 bool writeDoc( PDFGenerator& pdfgen, const std::string& texfile, const ObjModel::Ptr model, const CameraParams& cam)
 {
+    PDFGenerator::LaTeXU3DInserter* fig = pdfgen.getFigureInserter( model, 150, 150, cam, "Example U3D");
+    if ( !fig)
+        return false;
+
     bool writtenOkay = false;
     std::ofstream os;
     try
@@ -67,7 +71,7 @@ bool writeDoc( PDFGenerator& pdfgen, const std::string& texfile, const ObjModel:
         os << "\\thispagestyle{empty}" << std::endl;
         os << std::endl;
 
-        os << pdfgen.getModelInserter( model, 150, 150, cam, "Example U3D") << std::endl;
+        os << *fig << std::endl;
 
         os << "\\end{document}" << std::endl;
         os.flush();
@@ -94,9 +98,14 @@ int main( int argc, char** argv)
     }   // end if
 
     RFeatures::ObjModel::Ptr model;
-    std::string pdffile = "tst.pdf";
+    std::string pdffile;
     if ( argc == 1)
-        model = TestUtils::createCube( 20, "tx0.png");
+    {
+        //model = TestUtils::createCube( 20, "tx0.png");
+        //pdffile = "cube1.pdf";
+        model = TestUtils::createCube( 20, "tx0.png", "tx1.png", "tx2.png");
+        pdffile = "cube3.pdf";
+    }   // end if
     else
     {
         model = TestUtils::loadModel( argv[1], true, true); // Load texture and clean
@@ -119,8 +128,12 @@ int main( int argc, char** argv)
 
     const std::string texfile = boost::filesystem::path(pdffile).stem().string() + ".tex";
     PDFGenerator pdfgen;
-    writeDoc( pdfgen, texfile, model, camera);
-    if ( !pdfgen( texfile, true))
+    if ( !writeDoc( pdfgen, texfile, model, camera))
+    {
+        std::cerr << "Failed to create .tex file!" << std::endl;
+        rval = EXIT_FAILURE;
+    }   // end if
+    else if ( !pdfgen( texfile, true))
         rval = EXIT_FAILURE;
     return rval;
 }   // end main

@@ -98,12 +98,12 @@ std::ostream& operator<<( std::ostream& os, const NL& nl)
 }   // end operator<<
 
 
-void nodeModel( std::ostream& os, const std::string& resourceName)
+void nodeGroup( std::ostream& os)
 {
     TB t(1), tt(2), ttt(3), tttt(4);
     NL n(1);
-    os << "NODE \"MODEL\" {" << n;
-    os << t << "NODE_NAME \"Model01\"" << n;
+    os << "NODE \"GROUP\" {" << n;
+    os << t << "NODE_NAME \"ModelGroup\"" << n;
     os << t << "PARENT_LIST {" << n;
     os << tt << "PARENT_COUNT 1" << n;
     os << tt << "PARENT 0 {" << n;
@@ -116,7 +116,29 @@ void nodeModel( std::ostream& os, const std::string& resourceName)
     os << ttt << "}" << n;  // end PARENT_TM
     os << tt << "}" << n;  // end PARENT 0
     os << t << "}" << n;  // end PARENT_LIST
-    os << t << "RESOURCE_NAME \"" << resourceName << "\"" << n;
+    os << "}" << n << n; // end NODE "GROUP"
+}   // end nodeGroup
+
+
+void nodeModel( std::ostream& os, int meshID)
+{
+    TB t(1), tt(2), ttt(3), tttt(4);
+    NL n(1);
+    os << "NODE \"MODEL\" {" << n;
+    os << t << "NODE_NAME \"Mesh" << meshID << "\"" << n;
+    os << t << "PARENT_LIST {" << n;
+    os << tt << "PARENT_COUNT 1" << n;
+    os << tt << "PARENT 0 {" << n;
+    os << ttt << "PARENT_NAME \"ModelGroup\"" << n;
+    os << ttt << "PARENT_TM {" << n;
+    os << tttt << "1.000000 0.000000 0.000000 0.000000" << n;
+    os << tttt << "0.000000 1.000000 0.000000 0.000000" << n;
+    os << tttt << "0.000000 0.000000 1.000000 0.000000" << n;
+    os << tttt << "0.000000 0.000000 0.000000 1.000000" << n;
+    os << ttt << "}" << n;  // end PARENT_TM
+    os << tt << "}" << n;  // end PARENT 0
+    os << t << "}" << n;  // end PARENT_LIST
+    os << t << "RESOURCE_NAME \"Mesh" << meshID << "\"" << n;
     os << "}" << n << n; // end NODE "MODEL"
 }   // end nodeModel
 
@@ -161,20 +183,17 @@ void resourceLight( std::ostream& os, int lightID)
 }   // end resourceLight
 
 
-void resourceListShader( std::ostream& os, size_t nTX)
+void resourceListShader( std::ostream& os, int nmesh, bool hasTX)
 {
     TB t(1), tt(2), ttt(3), tttt(4);
     NL n(1);
-    const bool hasTX = nTX > 0;
-    nTX = std::max(size_t(1),nTX);    // Need at least one shader!
     os << "RESOURCE_LIST \"SHADER\" {" << n;
-    os << t << "RESOURCE_COUNT " << nTX << n;
-
-    for ( size_t i = 0; i < nTX; ++i)    // One to one mapping of shaders to texture maps
+    os << t << "RESOURCE_COUNT " << nmesh << n;
+    for ( int i = 0; i < nmesh; ++i)    // One to one mapping of shaders to texture maps
     {
         os << t << "RESOURCE " << i << " {" << n;
-        os << tt << "RESOURCE_NAME \"ModelShader" << i << "\"" << n;
-        os << tt << "SHADER_MATERIAL_NAME \"Mat01\"" << n;  // All shaders reference same material
+        os << tt << "RESOURCE_NAME \"Shader" << i << "\"" << n;
+        os << tt << "SHADER_MATERIAL_NAME \"Material0\"" << n;  // All shaders reference same material
         os << tt << "SHADER_ACTIVE_TEXTURE_COUNT " << ( hasTX ? 1 : 0) << n;
         if ( hasTX)
         {
@@ -190,26 +209,25 @@ void resourceListShader( std::ostream& os, size_t nTX)
 }   // end resourceListShader
 
 
-void modifierShading( std::ostream& os)
+void modifierShading( std::ostream& os, int meshID)
 {
     TB t(1), tt(2), ttt(3), tttt(4), ttttt(5);
     NL n(1);
     os << "MODIFIER \"SHADING\" {" << n;
-    os << t << "MODIFIER_NAME \"Model01\"" << n;
+    os << t << "MODIFIER_NAME \"Mesh" << meshID << "\"" << n;
     os << t << "PARAMETERS {" << n;
-    os << tt << "SHADER_LIST_COUNT " << 1 << n;
-    os << tt << "SHADER_LIST_LIST {" << n;
+    os << tt << "SHADER_LIST_COUNT 1" << n;
+    os << tt << "SHADING_GROUP {" << n;
     os << ttt << "SHADER_LIST 0 {" << n;
     os << tttt << "SHADER_COUNT 1" << n;
     os << tttt << "SHADER_NAME_LIST {" << n;
-    os << ttttt << "SHADER 0 NAME: \"ModelShader0\"" << n;
+    os << ttttt << "SHADER 0 NAME: \"Shader" << meshID << "\"" << n;
     os << tttt << "}" << n; // end SHADER_NAME_LIST
     os << ttt << "}" << n; // end SHADER_LIST
-    os << tt << "}" << n; // end SHADER_LIST_LIST
+    os << tt << "}" << n; // end SHADING_GROUP
     os << t << "}" << n; // end PARAMETERS
     os << "}" << n; // end MODIFIER "SHADING"
 }   // end modifierShading
-
 
 
 void resourceListMaterial( std::ostream& os)
@@ -219,7 +237,7 @@ void resourceListMaterial( std::ostream& os)
 	os << "RESOURCE_LIST \"MATERIAL\" {" << n;
     os << t << "RESOURCE_COUNT 1" << n;
     os << t << "RESOURCE 0 {" << n;
-	os << tt << "RESOURCE_NAME \"Mat01\"" << n;
+	os << tt << "RESOURCE_NAME \"Material0\"" << n;
 	os << tt << "MATERIAL_AMBIENT 1.0 1.0 1.0" << n;
 	os << tt << "MATERIAL_DIFFUSE 1.0 1.0 1.0" << n;
 	os << tt << "MATERIAL_SPECULAR 0.0 0.0 0.0" << n;
@@ -253,70 +271,75 @@ void resourceListTexture( std::ostream& os, const std::vector<std::pair<int, std
 
 struct ModelResource
 {
-    ModelResource( const ObjModel::Ptr model, const boost::unordered_map<int,int>& mmap)
-        : _model(model), _mmap(mmap)
+    // matID >= 0 if the model has materials.
+    ModelResource( const ObjModel::Ptr model, int matID) : _model(model)
     {
-        // Get repeatable sequence of face IDs and the unique set of texture coords across all materials
-        const IntSet& fids = _model->getFaceIds();
-        _fidv.resize( fids.size());
+        // Get repeatable sequence of face IDs and the unique set of texture coords for the material
+        const IntSet* fids;
+        if ( matID < 0)
+            fids = &_model->getFaceIds();
+        else
+            fids = &_model->getMaterialFaceIds(matID);
+
+        _fidv.resize( fids->size());
         int k = 0;
-        BOOST_FOREACH ( int fid, fids)
+        int vid;
+        BOOST_FOREACH ( int fid, *fids)
         {
             _fidv[k++] = fid;
-            const int64_t mid = _model->getFaceMaterialId(fid);
-            if ( mid >= 0)
+            if ( _model->getFaceMaterialId(fid) >= 0)
             {
                 const int* uvids = _model->getFaceUVs(fid);
                 for ( int i = 0; i < 3; ++i)
                 {
                     // Only want to store unique UV offsets.
-                    const int64_t key = (mid << 32) | int64_t(uvids[i]);  // Who doesn't love a bit-shifted disjunction.
+                    const int key = uvids[i];
                     if ( _uvmap.count(key) == 0)
                     {
-                        _uvmap[key] = (int)_uvlist.size();  // Hash the array index
-                        _uvlist.push_back( &_model->uv( (int)mid, uvids[i]));
+                        _uvmap[key] = (int)_uvlist.size();  // Map the array index
+                        _uvlist.push_back( &_model->uv( matID, key));
                     }   // end if
                 }   // end for
             }   // end if
-        }   // end foreach
 
-        k = 0;
-        const IntSet& vids = _model->getVertexIds();
-        _vidv.resize( vids.size());
-        BOOST_FOREACH ( int vid, vids)
-        {
-            _vidv[k] = vid;
-            _vmap[vid] = k++;  // For mapping to index of this node's list from a ObjPoly.vindices array.
+            const int* vidxs = _model->getFaceVertices(fid);
+            for ( int i = 0; i < 3; ++i)
+            {
+                vid = vidxs[i];
+                if ( _vmap.count(vid) == 0)
+                {
+                    _vmap[vid] = (int)_vidv.size();  // For mapping to index of this node's list from a ObjPoly.vindices array.
+                    _vidv.push_back(vid);
+                }   // end if
+            }   // end for
         }   // end foreach
     }   // end ctor
 
-    void writeMesh( std::ostream& os, const std::string& resourceName) const
+    void writeMesh( std::ostream& os) const
     {
+        const bool hasTX = _model->getNumMaterials() > 0;
         TB tt(2);
         NL n(1);
-        os << tt << "RESOURCE_NAME \"" << resourceName << "\"" << n;
-        os << tt << "MODEL_TYPE \"MESH\"" << n;
-        os << tt << "MESH {" << n;
         writeHeader(os);
         writeShadingDescriptionList(os);
         writeFacePositionList(os);
         writeFaceNormalList(os);
         writeFaceShadingList(os);
-        writeFaceTextureCoordList(os);
+        if ( hasTX)
+            writeFaceTextureCoordList(os);
         writePositionList(os);
         writeNormalList(os);
-        writeTextureCoordList(os);
-        os << tt << "}" << n;    // end MESH
+        if ( hasTX)
+            writeTextureCoordList(os);
     }   // end writeMesh
 
 private:
     const ObjModel::Ptr _model;
-    const boost::unordered_map<int,int>& _mmap; // ObjModel material ID --> shader list index
-    std::vector<int> _fidv;                     // Predictable seq. of face IDs
-    std::vector<int> _vidv;                     // Predictable seq. of vertex IDs
-    boost::unordered_map<int,int> _vmap;        // ObjModel vertexID --> MODEL_POSITION_LIST index
-    boost::unordered_map<int64_t, int> _uvmap;  // ObjModel mat and uvID --> _uvlist index
-    std::vector<const cv::Vec2f*> _uvlist;      // List of texture UVs to output in MODEL_TEXTURE_COORD_LIST
+    std::vector<int> _fidv;                 // Predictable seq. of face IDs
+    std::vector<int> _vidv;                 // Predictable seq. of vertex IDs
+    boost::unordered_map<int,int> _vmap;    // ObjModel vertexID --> MODEL_POSITION_LIST index
+    boost::unordered_map<int, int> _uvmap;  // ObjModel uvID --> _uvlist index
+    std::vector<const cv::Vec2f*> _uvlist;  // List of texture UVs to output in MODEL_TEXTURE_COORD_LIST
 
 
     void writeHeader( std::ostream& os) const
@@ -330,30 +353,26 @@ private:
         os << ttt << "MODEL_SPECULAR_COLOR_COUNT 0" << n;
         os << ttt << "MODEL_TEXTURE_COORD_COUNT " << _uvmap.size() << n;
         os << ttt << "MODEL_BONE_COUNT 0" << n; // No skeleton
-        os << ttt << "MODEL_SHADING_COUNT " << int(std::max(size_t(1),_mmap.size())) << n;
+        os << ttt << "MODEL_SHADING_COUNT 1" << n;
     }   // end writeHeader
 
 
     void writeShadingDescriptionList( std::ostream& os) const
     {
+        const bool hasTX = _model->getNumMaterials() > 0;
         TB ttt(3), tttt(4), ttttt(5), tttttt(6);
         NL n(1);
-        const bool hasTX = !_mmap.empty();
-        const int nTX = (int)std::max(size_t(1),_mmap.size());
         os << ttt << "MODEL_SHADING_DESCRIPTION_LIST {" << n;
-        for ( size_t i = 0; i < nTX; ++i)
+        os << tttt << "SHADING_DESCRIPTION 0 {" << n;
+        os << ttttt << "TEXTURE_LAYER_COUNT " << (hasTX ? 1 : 0) << n;    // No multi-texturing!
+        if ( hasTX)
         {
-            os << tttt << "SHADING_DESCRIPTION " << i << " {" << n;
-            os << ttttt << "TEXTURE_LAYER_COUNT " << (hasTX ? 1 : 0) << n;    // No multi-texturing!
-            if ( hasTX)
-            {
-                os << ttttt << "TEXTURE_COORD_DIMENSION_LIST {" << n;
-                os << tttttt << "TEXTURE_LAYER 0 DIMENSION: 2" << n;    // 2D texture map
-                os << ttttt << "}" << n; // end TEXTURE_COORD_DIMENSION_LIST
-            }   // end if
-            os << ttttt << "SHADER_ID 0" << n;  // Same ID so shading modifier targets all shaders
-            os << tttt << "}" << n; // end SHADING_DESCRIPTION
-        }   // end for
+            os << ttttt << "TEXTURE_COORD_DIMENSION_LIST {" << n;
+            os << tttttt << "TEXTURE_LAYER 0 DIMENSION: 2" << n;    // 2D texture map
+            os << ttttt << "}" << n; // end TEXTURE_COORD_DIMENSION_LIST
+        }   // end if
+        os << ttttt << "SHADER_ID 0" << n;
+        os << tttt << "}" << n; // end SHADING_DESCRIPTION
         os << ttt << "}" << n;  // end MODEL_SHADING_DESCRIPTION_LIST
     }   // end writeShadingDescriptionList
 
@@ -396,47 +415,36 @@ private:
         TB ttt(3), tttt(4);
         NL n(1);
         os << ttt << "MESH_FACE_SHADING_LIST {" << n;
-        int mid;
         BOOST_FOREACH ( int fid, _fidv)
-        {
-            mid = _model->getFaceMaterialId(fid);
-            os << tttt << (mid < 0 ? 0 : _mmap.at(mid)) << n;
-        }   // end foreach
+            os << tttt << 0 << n;
         os << ttt << "}" << n;  // end MESH_FACE_SHADING_LIST
     }   // end writeFaceShadingList
 
 
     int getUVListIndex( int faceId, int uvOrderIndex/*[0,2]*/) const
     {
-        const int64_t mid = _model->getFaceMaterialId(faceId);
+        const int mid = _model->getFaceMaterialId(faceId);
         assert( mid >= 0);
-        const int64_t uvid = _model->getFaceUVs(faceId)[uvOrderIndex];
-        return _uvmap.at( (mid << 32) | uvid);
+        const int uvid = _model->getFaceUVs(faceId)[uvOrderIndex];
+        return _uvmap.at( uvid);
     }   // end getUVListIndex
 
     // Write out texture coordinates if ObjModel has materials.
     void writeFaceTextureCoordList( std::ostream& os) const
     {
-        if ( _mmap.empty())
-            return;
-
         TB ttt(3), tttt(4), ttttt(5);
         NL n(1);
         int i = 0;
         os << ttt << "MESH_FACE_TEXTURE_COORD_LIST {" << n;
         BOOST_FOREACH ( int fid, _fidv)
         {
-            // Faces that don't map to a material are ignored
-            if ( _model->getFaceMaterialId( fid) >= 0)
-            {
-                const int uv0 = getUVListIndex( fid, 0);
-                const int uv1 = getUVListIndex( fid, 1);
-                const int uv2 = getUVListIndex( fid, 2);
-                os << tttt << "FACE " << i << " {" << n;
-                os << ttttt << "TEXTURE_LAYER 0 TEX_COORD: " << std::fixed << std::setprecision(6)
-                                                             << uv0 << " " << uv1 << " " << uv2 << n;
-                os << tttt << "}" << n; // end FACE i
-            }   // end if
+            const int uv0 = getUVListIndex( fid, 0);
+            const int uv1 = getUVListIndex( fid, 1);
+            const int uv2 = getUVListIndex( fid, 2);
+            os << tttt << "FACE " << i << " {" << n;
+            os << ttttt << "TEXTURE_LAYER 0 TEX_COORD: " << std::fixed << std::setprecision(6)
+                                                         << uv0 << " " << uv1 << " " << uv2 << n;
+            os << tttt << "}" << n; // end FACE i
             i++;
         }   // end foreach
         os << ttt << "}" << n;  // end MESH_FACE_TEXTURE_COORD_LIST
@@ -459,7 +467,7 @@ private:
     }   // end writePositionList
 
 
-    // Record the vertex normals
+    // vertex normals not used
     void writeNormalList( std::ostream& os) const
     {
         const cv::Vec3f nrm(0,0,0);
@@ -479,9 +487,6 @@ private:
 
     void writeTextureCoordList( std::ostream& os) const
     {
-        if ( _mmap.empty())
-            return;
-
         TB ttt(3), tttt(4);
         NL n(1);
         os << ttt << "MODEL_TEXTURE_COORD_LIST {" << n;
@@ -498,10 +503,7 @@ private:
 std::string writeFile( const ObjModel::Ptr model, const std::string& filename, const std::vector<std::pair<int, std::string> >& mtf)
 {
     const int nTX = (int)mtf.size();
-    boost::unordered_map<int,int> mmap; // For mapping ObjModel material ID to ascending material index as stored in file.
-    for ( int i = 0; i < nTX; ++i)  // One to one mapping of shaders to texture maps
-        mmap[mtf[i].first] = i;     // Usually this will be i-->i but possible that it won't be in future (if material ID values change)
-
+    const int nmesh = std::max(1,nTX);
     std::string errMsg;
     std::ofstream ofs;
     try
@@ -510,32 +512,47 @@ std::string writeFile( const ObjModel::Ptr model, const std::string& filename, c
 
         TB t(1), tt(2);
         NL n(1);
-        const std::string meshName("Model01");
+        const std::string meshName("Model");
 
         // File header
         ofs << "FILE_FORMAT \"IDTF\"" << n;
         ofs << "FORMAT_VERSION 100" << n << n;
 
-        nodeModel( ofs, meshName);
+        nodeGroup( ofs);
+        for ( int i = 0; i < nmesh; ++i)
+            nodeModel( ofs, i);
+
         //nodeLight( ofs, 1, cv::Vec3f(0,0,50));
         //resourceLight( ofs, 1);
 
+        // Multi material models are defined as separate model resources under a single parent node.
         // Model resource list (1 element)
         ofs << "RESOURCE_LIST \"MODEL\" {" << n;
-        ofs << t << "RESOURCE_COUNT 1" << n;
-        ofs << t << "RESOURCE 0 {" << n;
-        const ModelResource modelResource( model, mmap);
-        modelResource.writeMesh( ofs, meshName);
-        ofs << t << "}" << n;
+        ofs << t << "RESOURCE_COUNT " << nmesh << n;
+
+        for ( int i = 0; i < nmesh; ++i)
+        {
+            ofs << t << "RESOURCE " << i << " {" << n;
+            ofs << tt << "RESOURCE_NAME \"Mesh" << i << "\"" << n;
+            ofs << tt << "MODEL_TYPE \"MESH\"" << n;
+            ofs << tt << "MESH {" << n;
+            // meshID is the material ID if there's at least one material on the object
+            const int matID = nTX > 0 ? mtf[i].first : -1;
+            const ModelResource modelResource( model, matID);
+            modelResource.writeMesh( ofs);
+            ofs << tt << "}" << n;    // end MESH
+            ofs << t << "}" << n;    // end RESOURCE
+        }   // end for
+
         ofs << "}" << n << n;
 
-        // Shader resource list
-        resourceListShader( ofs, nTX);
+        resourceListShader( ofs, nmesh, nTX > 0);
         resourceListMaterial( ofs);
         resourceListTexture( ofs, mtf);
 
-        // Shading modifier
-        modifierShading( ofs);
+        // Shading modifiers
+        for ( int i = 0; i < nmesh; ++i)
+            modifierShading( ofs, i);
 
         ofs.close();
     }   // end try

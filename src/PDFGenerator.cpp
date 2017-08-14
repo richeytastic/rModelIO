@@ -122,17 +122,21 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
 
 
 // public
-PDFGenerator::LaTeXU3DInserter& PDFGenerator::getModelInserter( const ObjModel::Ptr model,
-                                                                float fw, float fh,
-                                                                const Cam& cam,
-                                                                const std::string& figCap, const std::string& figLab,
-                                                                bool actOnOpen)
+PDFGenerator::LaTeXU3DInserter* PDFGenerator::getFigureInserter( const ObjModel::Ptr model,
+                                                                 float fw, float fh,
+                                                                 const Cam& cam,
+                                                                 const std::string& figCap, const std::string& figLab,
+                                                                 bool actOnOpen)
 {
     LaTeXU3DInserter* modelInserter = new LaTeXU3DInserter( fw, fh, cam, figCap, figLab, actOnOpen);
-    modelInserter->setModel(model);
+    if ( !modelInserter->setModel(model))
+    {
+        delete modelInserter;
+        return NULL;
+    }   // end if
     _inserters.push_back(modelInserter);
-    return *modelInserter;
-}   // end getModelInserter
+    return modelInserter;
+}   // end getFigureInserter
 
 
 // private

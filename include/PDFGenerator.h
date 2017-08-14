@@ -97,13 +97,15 @@ public:
 
     struct LaTeXU3DInserter;
 
-    // New figure inserter.
-    LaTeXU3DInserter& getModelInserter( const RFeatures::ObjModel::Ptr,
-                                        float figWidthMM, float figHeightMM, // Width and height of figure in mm
-                                        const RFeatures::CameraParams& cam,  // ONLY pos-focus distance used - see above!
-                                        const std::string& figCaption="",    // Caption ignored if empty
-                                        const std::string& figLabel="",      // Label not written if empty
-                                        bool activate3DContentOnOpen=true);  // Activate 3D model on open (true) or click (false)
+    // New figure inserter. Returns NULL if unable to convert given model to U3D.
+    // Don't try to delete the returned object - will be deleted automatically
+    // when the PDFGenerator's destructor runs.
+    LaTeXU3DInserter* getFigureInserter( const RFeatures::ObjModel::Ptr,
+                                         float figWidthMM, float figHeightMM, // Width and height of figure in mm
+                                         const RFeatures::CameraParams& cam,  // ONLY pos-focus distance used - see above!
+                                         const std::string& figCaption="",    // Caption ignored if empty
+                                         const std::string& figLabel="",      // Label not written if empty
+                                         bool activate3DContentOnOpen=true);  // Activate 3D model on open (true) or click (false)
 
     struct rModelIO_EXPORT LaTeXU3DInserter
     {
