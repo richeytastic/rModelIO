@@ -177,7 +177,7 @@ aiScene* createScene( int nmat)
 
 
 // public
-AssetExporter::AssetExporter( const ObjModel::Ptr model) : RModelIO::ObjModelExporter( model)
+AssetExporter::AssetExporter() : RModelIO::ObjModelExporter()
 {
     boost::unordered_set<std::string> disallowed;
     disallowed.insert("3d");
@@ -203,26 +203,38 @@ AssetExporter::AssetExporter( const ObjModel::Ptr model) : RModelIO::ObjModelExp
         if ( ext.empty() || desc.empty() || descSet.count(desc) || disallowed.count(ext))
             continue;
 
-        const bool addedOkay = addSupported( ext, desc);
-        assert(addedOkay);
         descSet.insert(desc);
+        _available[ext] = desc;
     }   // end for
 }   // end ctor
 
 
-// protected
-bool AssetExporter::doSave( const std::string& fname)
+// public
+bool AssetExporter::enableFormat( const std::string& ext)
 {
-    const ObjModel::Ptr omodel = _model;
-    const int nmat = (int)omodel->getNumMaterials();
+    if ( _available.count(ext) == 0)
+        return false;
+
+    const std::string testfname = "tonythetiger." + ext;
+    if ( isSupported( testfname))
+        return true;
+
+    return addSupported( ext, _available.at(ext));
+}   // end enableFormat
+
+
+// protected
+bool AssetExporter::doSave( const ObjModel::Ptr model, const std::string& fname)
+{
+    const int nmat = (int)model->getNumMaterials();
     aiScene* scene = createScene( nmat);
     std::string txSaveErr = "";
     for ( int i = 0; i < nmat; ++i)
     {
         aiMesh* mesh = scene->mMeshes[i];
-        setMesh( mesh, omodel);
+        setMesh( mesh, model);
         aiMaterial* mat = scene->mMaterials[i];
-        txSaveErr = saveMaterialTextures( mat, i, omodel, fname);
+        txSaveErr = saveMaterialTextures( mat, i, model, fname);
         if (!txSaveErr.empty())
             break;
     }   // end for
@@ -245,3 +257,5 @@ bool AssetExporter::doSave( const std::string& fname)
     delete scene;
     return savedOkay;
 }   // end doSave
+
+

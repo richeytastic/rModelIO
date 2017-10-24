@@ -32,7 +32,15 @@ using RModelIO::U3DExporter;
 using RFeatures::ObjModel;
 typedef RFeatures::CameraParams Cam;
 
-std::string PDFGenerator::pdflatex; // public static
+std::string PDFGenerator::pdflatex( "pdflatex"); // public static
+
+
+// public
+bool PDFGenerator::isAvailable()
+{
+    const boost::filesystem::path genpath = boost::process::search_path(PDFGenerator::pdflatex);
+    return !genpath.empty();
+}   // end isAvailable
 
 
 // public
@@ -62,8 +70,7 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
         return false;
     }   // end if
 
-    const boost::filesystem::path tpath = texfile;
-    const std::string stem = tpath.stem().string();
+    boost::filesystem::path tpath = texfile;
     bool success = false;
     std::ostringstream errMsg;
     std::cerr << "Attempting to generate PDF from " << texfile << std::endl;
@@ -78,11 +85,11 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
         // quotes). Tried enclosing with escaped quotes in the pathname, but that didn't work
         // either. So doing it this way!
         //bp::child c(genpath, "-interaction", "batchmode", texfile, bp::std_out > stdout, bp::std_err > stderr);
-        bp::child c( genpath.filename().string() + " -interaction batchmode " + texfile);
+        bp::child c( genpath.filename().string() + " -interaction batchmode -output-directory " + tpath.parent_path().string() + " " + texfile);
         c.wait();
         success = c.exit_code() == 0;
         if ( success)
-            std::cerr << "Generated " << tpath.stem().string() << ".pdf" << std::endl;
+            std::cerr << "Generated " << tpath.replace_extension("pdf").string() << std::endl;
         else
             errMsg << "[ERROR] RModelIO::PDFGenerator::operator(): Child process exited with " << c.exit_code();
     }   // end try
@@ -105,9 +112,9 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
 
     if ( remGen)
     {
-        boost::filesystem::remove( stem + ".aux");
-        boost::filesystem::remove( stem + ".log");
-        boost::filesystem::remove( stem + ".out");
+        boost::filesystem::remove( tpath.replace_extension("aux"));
+        boost::filesystem::remove( tpath.replace_extension("log"));
+        boost::filesystem::remove( tpath.replace_extension("out"));
     }   // end if
 
     // Remove the input .tex file?
@@ -183,11 +190,11 @@ bool PDFGenerator::LaTeXU3DInserter::setModel( const ObjModel::Ptr model)
     bool setokay = false;
     const std::string u3dtmp = boost::filesystem::unique_path().string() + ".u3d";
 #ifndef NDEBUG
-    U3DExporter u3dxptr(model,false);
+    U3DExporter u3dxptr(false);
 #else
-    U3DExporter u3dxptr(model);
+    U3DExporter u3dxptr;
 #endif
-    if ( !u3dxptr.save( u3dtmp))
+    if ( !u3dxptr.save( model, u3dtmp))
     {
         std::cerr << u3dxptr.err() << std::endl;
         return false;

@@ -21,13 +21,13 @@ using RFeatures::ObjModel;
 
 
 // public
-ObjModelExporter::ObjModelExporter( const ObjModel::Ptr m) : rlib::IOFormats(), _model(m)
+ObjModelExporter::ObjModelExporter() : rlib::IOFormats()
 {
 }   // end ctor
 
 
 // public
-bool ObjModelExporter::save( const std::string& fname)
+bool ObjModelExporter::save( const ObjModel::Ptr model, const std::string& fname)
 {
     setErr(""); // Clear error
     if ( !isSupported( fname))
@@ -36,5 +36,5 @@ bool ObjModelExporter::save( const std::string& fname)
         return false;
     }   // end if
 
-    return doSave( fname);    // virtual
+    return doSave( model, fname);    // virtual
 }   // end save

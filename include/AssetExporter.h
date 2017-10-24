@@ -30,11 +30,22 @@ namespace RModelIO
 class rModelIO_EXPORT AssetExporter : public ObjModelExporter
 {
 public:
-    explicit AssetExporter( const RFeatures::ObjModel::Ptr);
+    AssetExporter();
     virtual ~AssetExporter(){}
 
+    // Get the available formats as extension description pairs. These are not
+    // enabled by default. Use enableFormat( fmt) below where fmt is the extension
+    // (the first item of the available pairs returned here).
+    const boost::unordered_map<std::string, std::string>& getAvailable() const { return _available;}
+
+    // Returns true if the format is enabled.
+    bool enableFormat( const std::string& ext);
+
 protected:
-    virtual bool doSave( const std::string& filename);
+    virtual bool doSave( const RFeatures::ObjModel::Ptr, const std::string& filename);
+
+private:
+    boost::unordered_map<std::string, std::string> _available;
 };  // end class
 
 }   // end namespace

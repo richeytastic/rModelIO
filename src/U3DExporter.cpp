@@ -20,8 +20,8 @@
 #include <cassert>
 #include <iostream>
 #include <sstream>
-#include <cstdlib>  // system (WIN32)
-#include <cstdio>   // popen (UNIX)
+#include <cstdlib>
+#include <cstdio>
 #include <boost/filesystem/operations.hpp>
 #include <boost/process.hpp>    // Requires at least boost 1.64+
 using RModelIO::IDTFExporter;
@@ -29,20 +29,28 @@ using RModelIO::U3DExporter;
 using RFeatures::ObjModel;
 
 
-std::string U3DExporter::IDTFConverter; // public static
+std::string U3DExporter::IDTFConverter( "IDTFConverter"); // public static
+
+
+// public static
+bool U3DExporter::isAvailable()
+{
+    const boost::filesystem::path exepath = boost::process::search_path( IDTFConverter);
+    return !exepath.empty();
+}   // end isAvailable
 
 
 // public
-U3DExporter::U3DExporter( const ObjModel::Ptr mod, bool delOnDestroy)
-    : RModelIO::ObjModelExporter(mod), _delOnDestroy(delOnDestroy)
+U3DExporter::U3DExporter( bool delOnDestroy)
+    : RModelIO::ObjModelExporter(), _delOnDestroy(delOnDestroy)
 {
     if ( IDTFConverter.empty())
-        std::cerr << "[WARNING] RModelIO::U3DExporter: U3D export disabled; IDTFConverter not set!" << std::endl;
-    else
-    {
+        IDTFConverter = "IDTFConverter";
+
+    if ( isAvailable())
         addSupported( "u3d", "Universal 3D");
-        std::cout << "[STATUS] RModelIO::U3DExporter using IDTFConverter at " << IDTFConverter << std::endl;
-    }   // end else
+    else
+        std::cerr << "[WARNING] RModelIO::U3DExporter: U3D export disabled; IDTFConverter not found on PATH!" << std::endl;
 }   // end ctor
 
 
@@ -77,15 +85,14 @@ bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 
 
 // protected
-bool U3DExporter::doSave( const std::string& filename)
+bool U3DExporter::doSave( const ObjModel::Ptr model, const std::string& filename)
 {
     bool savedOkay = true;
 
     // First save to intermediate IDTF format.
-    const ObjModel::Ptr model = _model;
-    IDTFExporter idtfExporter( model, _delOnDestroy);
-    const std::string idtffile = boost::filesystem::path(filename).stem().string() + ".idtf";
-    if ( !idtfExporter.save( idtffile))
+    IDTFExporter idtfExporter( _delOnDestroy);
+    const std::string idtffile = boost::filesystem::path(filename).replace_extension("idtf").string();
+    if ( !idtfExporter.save( model, idtffile))
     {   
         setErr( idtfExporter.err());
         savedOkay = false;

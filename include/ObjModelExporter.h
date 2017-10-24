@@ -32,15 +32,14 @@ namespace RModelIO
 class rModelIO_EXPORT ObjModelExporter : public rlib::IOFormats
 {
 public:
-    explicit ObjModelExporter( const RFeatures::ObjModel::Ptr);
+    ObjModelExporter();
     virtual ~ObjModelExporter(){}
 
     // Returns true on success. The filename extension must be supported.
-    bool save( const std::string& filename);
+    bool save( const RFeatures::ObjModel::Ptr, const std::string& filename);
 
 protected:
-    virtual bool doSave( const std::string& filename) = 0;
-    const RFeatures::ObjModel::Ptr _model;
+    virtual bool doSave( const RFeatures::ObjModel::Ptr, const std::string& filename) = 0;
 };  // end class
 
 }   // end namespace

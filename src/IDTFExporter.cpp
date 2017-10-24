@@ -29,8 +29,8 @@ using RFeatures::ObjModel;
 
 
 // public
-IDTFExporter::IDTFExporter( const ObjModel::Ptr mod, bool delOnDtor)
-    : RModelIO::ObjModelExporter(mod), _delOnDtor(delOnDtor)
+IDTFExporter::IDTFExporter( bool delOnDtor)
+    : RModelIO::ObjModelExporter(), _delOnDtor(delOnDtor)
 {
     addSupported( "idtf", "Intermediate Data Text Format");
 }   // end ctor
@@ -567,7 +567,7 @@ std::string writeFile( const ObjModel::Ptr model, const std::string& filename, c
 
 
 // protected
-bool IDTFExporter::doSave( const std::string& filename)
+bool IDTFExporter::doSave( const ObjModel::Ptr inmodel, const std::string& filename)
 {
     reset();
     // Need to set all the texture map filenames (if present) and save out the textures.
@@ -579,12 +579,12 @@ bool IDTFExporter::doSave( const std::string& filename)
 
     std::vector<std::pair<int, std::string> > mtf;  // Associate the texture filenames with the material ID
     ObjModel::Ptr model;
-    if ( _model->getNumMaterials() <= 1)
-        model = _model;
+    if ( inmodel->getNumMaterials() <= 1)
+        model = inmodel;
     else
     {
         std::cerr << "[STATUS] RModelIO::IDTFExporter::doSave: Multi-material model being cloned to single material model for export" << std::endl;
-        ObjModel::Ptr nmodel = _model->clone(false);
+        ObjModel::Ptr nmodel = inmodel->clone(false);
         nmodel->mergeMaterials();
         model = nmodel;
     }   // end else

@@ -1,17 +1,18 @@
 set( CMAKE_COLOR_MAKEFILE TRUE)
 set( CMAKE_VERBOSE_MAKEFILE FALSE)
 
-#set( CMAKE_CXX_FLAGS "-Wno-deprecated -Wno-deprecated-declarations -Wno-error=unknown-pragmas")
 if(UNIX)
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-deprecated -Wno-deprecated-declarations -Wno-error=unknown-pragmas")
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wno-deprecated-declarations -Wno-error=unknown-pragmas")
 endif()
+set(CMAKE_CXX_STANDARD 11)
 
 set( LIB_PRE_REQS "$ENV{INSTALL_PARENT_DIR}" CACHE PATH
     "Where library prerequisites are installed (if not in the standard system library locations).")
 set( CMAKE_LIBRARY_PATH "${LIB_PRE_REQS}")
 set( CMAKE_PREFIX_PATH "${LIB_PRE_REQS}")
 
-set( BUILD_SHARED_LIBS TRUE)
+set( BUILD_SHARED_LIBS TRUE CACHE BOOL "Dynamic Linking?" FORCE)
+set( CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 set( BUILD_USING_SHARED_LIBS TRUE)
 
 # Set IS_DEBUG and _dsuffix
@@ -74,6 +75,7 @@ if(WITH_FACETOOLS)
     find_package( FaceTools REQUIRED)
     include_directories( ${FaceTools_INCLUDE_DIRS})
     link_directories( ${FaceTools_LIBRARY_DIR})
+    set(WITH_CPD TRUE)
     set(WITH_CGAL TRUE)
     set(WITH_DLIB TRUE)
     set(WITH_QTOOLS TRUE)
@@ -251,11 +253,9 @@ if(WITH_VTK)    # VTK
 endif()
 
 if(WITH_QT)     # Qt5
-    if(WIN32)
-        set( Qt5_DIR "$ENV{QT5_CMAKE_PATH}" CACHE PATH "Location of Qt5Config.cmake")
-        if(NOT IS_DIRECTORY ${Qt5_DIR})
-            message( FATAL_ERROR "Can't find Qt5! Set environment variable QT5_CMAKE_PATH to the location of Qt5Config.cmake")
-        endif()
+    set( Qt5_DIR "$ENV{QT5_CMAKE_PATH}" CACHE PATH "Location of Qt5Config.cmake")
+    if(NOT IS_DIRECTORY ${Qt5_DIR})
+        message( FATAL_ERROR "Can't find Qt5! Set environment variable QT5_CMAKE_PATH to the location of Qt5Config.cmake")
     endif()
     find_package( Qt5 REQUIRED Widgets Sql)
     include_directories( ${Qt5Widgets_INCLUDE_DIRS})
@@ -305,5 +305,16 @@ if(WITH_LIBICP) # The ICP source library (Andreas Geiger) (https://github.com/sy
         )
 endif()
 
-
+if(WITH_CPD) # Coherent Point Drift
+    set( Cpd_ROOT "${LIB_PRE_REQS}/cpd" CACHE PATH "Location of CPD (Coherent Point Drift)")
+    if(IS_DEBUG)
+        set( Cpd_DIR "${Cpd_ROOT}/debug/lib/cmake/cpd" CACHE PATH "Location of cpd-config.cmake")
+    else()
+        set( Cpd_DIR "${Cpd_ROOT}/release/lib/cmake/cpd" CACHE PATH "Location of cpd-config.cmake")
+    endif()
+    message( STATUS "Cpd_DIR: ${Cpd_DIR}")
+    find_package( Cpd REQUIRED)
+    set( Cpd_INCLUDE_DIRS "${Cpd_DIR}/../../../include")
+    include_directories( ${Cpd_INCLUDE_DIRS})
+endif()
 

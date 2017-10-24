@@ -355,7 +355,6 @@ AssetImporter::AssetImporter( bool loadTextures, bool failOnNonTriangles)
     : RModelIO::ObjModelImporter(),
       _loadTextures(loadTextures), _failOnNonTriangles(failOnNonTriangles)
 {
-    std::cerr << "AssetImporter::populateFormats" << std::endl;
     boost::unordered_set<std::string> disallowed;
     disallowed.insert("3d");
     disallowed.insert("assbin");
@@ -387,12 +386,25 @@ AssetImporter::AssetImporter( bool loadTextures, bool failOnNonTriangles)
         {
             // Only add if not a disallowed file type
             if ( !disallowed.count(tok))
-                addSupported( tok, desc);
+                _available[tok] = desc;
         }   // end foreach
     }   // end for
     delete importer;
 }   // end ctor
 
+
+// public
+bool AssetImporter::enableFormat( const std::string& ext)
+{
+    if ( _available.count(ext) == 0)
+        return false;
+
+    const std::string testfname = "tonythetiger." + ext;
+    if ( isSupported( testfname))
+        return true;
+
+    return addSupported( ext, _available.at(ext));
+}   // end enableFormat
 
 
 // public
