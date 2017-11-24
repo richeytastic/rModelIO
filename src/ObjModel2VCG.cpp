@@ -87,7 +87,7 @@ VCGObjModel::Ptr ObjModel2VCG::create( const ObjModel::Ptr model)
 
             (*fp).WT(0).N() = (*fp).WT(1).N() = (*fp).WT(2).N() = tn; // Index into vmod->textures
 
-            // Finally, store reference to the diffuse texture in the material (though will take ambient or specular too)
+            // Store reference to the diffuse texture in the material (though will take ambient or specular too)
             _tmaps.resize( tn+1);
             const std::vector<cv::Mat>& ambient = model->getMaterialAmbient(mid);
             const std::vector<cv::Mat>& diffuse = model->getMaterialDiffuse(mid);
@@ -102,7 +102,7 @@ VCGObjModel::Ptr ObjModel2VCG::create( const ObjModel::Ptr model)
             else
             {
                 assert(false);
-                std::cerr << "[ERROR] ObjModel2VCG::create: no texture maps in referenced ObjModel::Material!" << std::endl;
+                std::cerr << "[ERROR] ObjModel2VCG::create: no textures in ObjModel::Material!" << std::endl;
             }   // end else
         }   // end if
 

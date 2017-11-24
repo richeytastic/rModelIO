@@ -583,8 +583,8 @@ bool IDTFExporter::doSave( const ObjModel::Ptr inmodel, const std::string& filen
         model = inmodel;
     else
     {
-        std::cerr << "[STATUS] RModelIO::IDTFExporter::doSave: Multi-material model being cloned to single material model for export" << std::endl;
-        ObjModel::Ptr nmodel = inmodel->clone(false);
+        std::cerr << "[STATUS] RModelIO::IDTFExporter::doSave: Multi-material model being copied to single material model for export" << std::endl;
+        ObjModel::Ptr nmodel = ObjModel::copy( inmodel, false);
         nmodel->mergeMaterials();
         model = nmodel;
     }   // end else

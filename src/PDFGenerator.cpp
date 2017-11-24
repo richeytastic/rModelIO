@@ -38,7 +38,9 @@ std::string PDFGenerator::pdflatex( "pdflatex"); // public static
 // public
 bool PDFGenerator::isAvailable()
 {
-    const boost::filesystem::path genpath = boost::process::search_path(PDFGenerator::pdflatex);
+    if ( boost::filesystem::exists( pdflatex))
+        return true;
+    const boost::filesystem::path genpath = boost::process::search_path(pdflatex);
     return !genpath.empty();
 }   // end isAvailable
 
@@ -46,8 +48,8 @@ bool PDFGenerator::isAvailable()
 // public
 PDFGenerator::PDFGenerator( bool remGen) : _remGen(remGen)
 {
-    if ( PDFGenerator::pdflatex.empty())
-        PDFGenerator::pdflatex = "pdflatex";
+    if ( pdflatex.empty())
+        pdflatex = "pdflatex";
 }   // end ctor
 
 
@@ -63,10 +65,9 @@ PDFGenerator::~PDFGenerator()
 bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
 {
     namespace bp = boost::process;
-    const boost::filesystem::path genpath = bp::search_path(PDFGenerator::pdflatex);
-    if ( genpath.empty())
+    if ( !isAvailable())
     {
-        std::cerr << "[WARNING] RModelIO::PDFGenerator: pdflatex not in the path! PDF generation disabled." << std::endl;
+        std::cerr << "[WARNING] RModelIO::PDFGenerator: pdflatex not available! PDF generation disabled." << std::endl;
         return false;
     }   // end if
 
@@ -84,8 +85,11 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
         // up when running pdflatex on cmd line using its fully qualified path (with enclosing
         // quotes). Tried enclosing with escaped quotes in the pathname, but that didn't work
         // either. So doing it this way!
+        //boost::filesystem::path genpath = boost::process::search_path(pdflatex);
+        //if ( genpath.empty())
+        //    genpath = boost::filesystem::path( pdflatex);
         //bp::child c(genpath, "-interaction", "batchmode", texfile, bp::std_out > stdout, bp::std_err > stderr);
-        bp::child c( genpath.filename().string() + " -interaction batchmode -output-directory " + tpath.parent_path().string() + " " + texfile);
+        bp::child c( pdflatex + " -interaction batchmode -output-directory " + tpath.parent_path().string() + " " + texfile);
         c.wait();
         success = c.exit_code() == 0;
         if ( success)

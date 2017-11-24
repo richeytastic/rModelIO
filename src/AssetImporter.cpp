@@ -32,6 +32,10 @@
 #include <boost/unordered_set.hpp>
 using RModelIO::AssetImporter;
 using RFeatures::ObjModel;
+
+namespace
+{
+
 typedef unsigned int uint;
 
 
@@ -250,8 +254,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
     const aiScene* scene = importer->GetScene();
     const uint nmaterials = scene->mNumMaterials;
     const uint nmeshes = scene->mNumMeshes;
-    std::cerr << "[INFO] RModelIO::AssetImporter::createModel(): Imported "
-              << nmeshes << " mesh and " << nmaterials << " material parts\n";
+    std::cerr << "[INFO] RModelIO::AssetImporter::createModel(): Imported " << nmeshes << " mesh and " << nmaterials << " material parts\n";
 
     ObjModel::Ptr model = RFeatures::ObjModel::create();
 
@@ -266,7 +269,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
         fidxs->clear();
         const aiMesh* mesh = scene->mMeshes[i];
 
-        std::cerr << "  ==================[ MESH " << std::setw(2) << i << " ]================== " << std::endl;
+        std::cerr << "  ====================[ MESH " << std::setw(2) << i << " ]====================" << std::endl;
         if ( mesh->HasFaces() && mesh->HasPositions())
         {
             // Returns the duplicate vertices for *just this mesh*
@@ -274,7 +277,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
             if ( dupVerts < 0)
             {
                 std::cerr << "[ERROR] RModelIO::AssetImporter::createModel(): Invalid vertex in model file (NaN)!" << std::endl;
-                model.reset();
+                model = NULL;
                 break;
             }   // end if
 
@@ -287,7 +290,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
                     std::cerr << "[ERROR] RModelIO::AssetImporter::createModel()"
                               << " failed on discovery of " << nonTriangles
                               << " non-triangular polygons." << std::endl;
-                    model.reset();
+                    model = NULL;
                     break;
                 }   // end if
                 else
@@ -311,14 +314,14 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
             if ( mesh->HasTextureCoords(0))
             {
                 // New materials are added only if they define a texture.
-                const int addedMat = setObjectTextures( ppath, scene, i, model);
-                if ( addedMat >= 0)
-                    setObjectTextureCoordinates( mesh, addedMat, *vidxs, *fidxs, model);
+                const int matId = setObjectTextures( ppath, scene, i, model);
+                if ( matId >= 0)
+                    setObjectTextureCoordinates( mesh, matId, *vidxs, *fidxs, model);
             }   // end if
             else
-                std::cerr << "  Mesh defines no texture coordinates." << std::endl;
+                std::cerr << "  Mesh defines no texture coordinates - no material set!" << std::endl;
         }   // end if
-        std::cerr << "  =============================================== " << std::endl;
+        std::cerr << "  ===================================================" << std::endl;
     }   // end for
 
     delete vidxs;
@@ -327,7 +330,6 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
 
     return model;
 }   // end createModel
-
 
 
 std::string getImporterSuffix( const Assimp::Importer* importer, size_t i)
@@ -349,6 +351,8 @@ std::string getImporterDescription( const Assimp::Importer* importer, size_t i)
     return name;
 }   // end getImporterDescription
 
+}   // end namespace
+
 
 // public
 AssetImporter::AssetImporter( bool loadTextures, bool failOnNonTriangles)
@@ -358,14 +362,18 @@ AssetImporter::AssetImporter( bool loadTextures, bool failOnNonTriangles)
     boost::unordered_set<std::string> disallowed;
     disallowed.insert("3d");
     disallowed.insert("assbin");
-    disallowed.insert("assxml");
-    disallowed.insert("dae");
-    disallowed.insert("pk3");
-    disallowed.insert("xml");
+    disallowed.insert("assxml");    // Unavailable
+    disallowed.insert("dae");   // No exporter available
+    disallowed.insert("pk3");   // Not available
+    disallowed.insert("xml");   // Too generic
     disallowed.insert("cob");
     disallowed.insert("scn");
-    disallowed.insert("mesh.xml");
-    disallowed.insert("stp");
+    disallowed.insert("mesh.xml");  // Too generic
+    disallowed.insert("stp");       // Doesn't work
+    disallowed.insert("glb");
+    disallowed.insert("gltf");
+    disallowed.insert("x");
+    disallowed.insert("3ds");   // No good for large files
 
     Assimp::Importer* importer = new Assimp::Importer;
     const size_t n = importer->GetImporterCount();

@@ -15,32 +15,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ************************************************************************/
 
-#include <ObjModelExporter.h>
-using RModelIO::ObjModelExporter;
+#include <WRLExporter.h>
+#include <ObjModel2VCG.h>
+#include <FileIO.h> // rlib
+#include <wrap/io_trimesh/export_vrml.h>
+using RModelIO::WRLExporter;
 using RFeatures::ObjModel;
 
 
-// public
-ObjModelExporter::ObjModelExporter() : rlib::IOFormats()
+// protected
+bool WRLExporter::doSave( const ObjModel::Ptr model, const std::string& filename)
 {
-}   // end ctor
-
-
-// public
-bool ObjModelExporter::save( const ObjModel::Ptr model, const std::string& fname)
-{
-    if ( fname.empty())
+    if ( rlib::getExtension( filename) != "wrl")
     {
-        setErr( "Empty filename passed to RModelIO::ObjModelExporter::save!");
+        std::cerr << "[ERROR] RModelIO::WRLExporter::doSave: " << filename << " does not end in '.wrl'" << std::endl;
         return false;
     }   // end if
 
-    setErr(""); // Clear error
-    if ( !isSupported( fname))
-    {
-        setErr( fname + " has an unsupported file extension for exporting!");
-        return false;
-    }   // end if
-
-    return doSave( model, fname);    // virtual
-}   // end save
+    RModelIO::ObjModel2VCG obj2vcg;
+    RModelIO::VCGObjModel::Ptr vobj = obj2vcg.create(model);
+    int mask = vcg::tri::io::Mask::IOM_WEDGTEXCOORD;
+    const int saveResult = vcg::tri::io::ExporterWRL<RModelIO::VCGObjModel>::Save( *vobj, filename.c_str(), mask, NULL);
+    if ( saveResult != 0)
+        std::cerr << "[ERROR] RModelIO::WRLExporter::doSave: Error saving model to '" << filename << "'" << std::endl;
+    return saveResult == 0;
+}   // end doSave

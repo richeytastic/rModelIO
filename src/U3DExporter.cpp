@@ -35,6 +35,8 @@ std::string U3DExporter::IDTFConverter( "IDTFConverter"); // public static
 // public static
 bool U3DExporter::isAvailable()
 {
+    if ( boost::filesystem::exists( IDTFConverter))
+        return true;
     const boost::filesystem::path exepath = boost::process::search_path( IDTFConverter);
     return !exepath.empty();
 }   // end isAvailable
