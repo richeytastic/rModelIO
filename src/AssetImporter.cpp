@@ -24,17 +24,14 @@
 #include <cassert>
 #include <iostream>
 #include <iomanip>
-#include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
-#include <boost/unordered_set.hpp>
 using RModelIO::AssetImporter;
 using RFeatures::ObjModel;
 
-namespace
-{
+namespace {
 
 typedef unsigned int uint;
 
@@ -52,7 +49,7 @@ cv::Mat loadImage( const boost::filesystem::path& ppath, const std::string& imgf
 int loadImages( const boost::filesystem::path& ppath, const std::vector<std::string>& imgfiles, std::vector<cv::Mat>& imgs)
 {
     imgs.clear();
-    BOOST_FOREACH ( const std::string& imgfile, imgfiles)
+    for ( const std::string& imgfile : imgfiles)
     {
         cv::Mat m = loadImage( ppath, imgfile);
         if ( m.empty())
@@ -359,7 +356,7 @@ AssetImporter::AssetImporter( bool loadTextures, bool failOnNonTriangles)
     : RModelIO::ObjModelImporter(),
       _loadTextures(loadTextures), _failOnNonTriangles(failOnNonTriangles)
 {
-    boost::unordered_set<std::string> disallowed;
+    std::unordered_set<std::string> disallowed;
     disallowed.insert("3d");
     disallowed.insert("assbin");
     disallowed.insert("assxml");    // Unavailable
@@ -390,7 +387,7 @@ AssetImporter::AssetImporter( bool loadTextures, bool failOnNonTriangles)
 
         // ext could have multiple entries, but will be space separated
         boost::tokenizer<boost::char_separator<char> > tokens( ext, sep);
-        BOOST_FOREACH ( const std::string& tok, tokens)
+        for ( const std::string& tok : tokens)
         {
             // Only add if not a disallowed file type
             if ( !disallowed.count(tok))

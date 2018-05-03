@@ -23,9 +23,9 @@
 #include <fstream>
 #include <sstream>
 #include <boost/filesystem/operations.hpp>
-#include <boost/foreach.hpp>
 using RModelIO::IDTFExporter;
 using RFeatures::ObjModel;
+using std::unordered_map;
 
 
 // public
@@ -57,7 +57,7 @@ void IDTFExporter::reset()
             std::cerr << "Removed " << ffile << std::endl;
         }   // end if
 
-        BOOST_FOREACH ( const std::string& tgafile, _tgafiles)
+        for ( const std::string& tgafile : _tgafiles)
         {
             path ifile( tgafile);
             if ( exists( ifile) && is_regular_file(ifile))
@@ -284,7 +284,7 @@ struct ModelResource
         _fidv.resize( fids->size());
         int k = 0;
         int vid;
-        BOOST_FOREACH ( int fid, *fids)
+        for ( int fid : *fids)
         {
             _fidv[k++] = fid;
             if ( _model->getFaceMaterialId(fid) >= 0)
@@ -337,8 +337,8 @@ private:
     const ObjModel::Ptr _model;
     std::vector<int> _fidv;                 // Predictable seq. of face IDs
     std::vector<int> _vidv;                 // Predictable seq. of vertex IDs
-    boost::unordered_map<int,int> _vmap;    // ObjModel vertexID --> MODEL_POSITION_LIST index
-    boost::unordered_map<int, int> _uvmap;  // ObjModel uvID --> _uvlist index
+    unordered_map<int,int> _vmap;    // ObjModel vertexID --> MODEL_POSITION_LIST index
+    unordered_map<int, int> _uvmap;  // ObjModel uvID --> _uvlist index
     std::vector<const cv::Vec2f*> _uvlist;  // List of texture UVs to output in MODEL_TEXTURE_COORD_LIST
 
 
@@ -385,7 +385,7 @@ private:
         os << TB(3) << "MESH_FACE_POSITION_LIST {" << NL(1);
         TB ttt(3), tttt(4);
         NL n(1);
-        BOOST_FOREACH ( int fid, _fidv)
+        for ( int fid : _fidv)
         {
             const int* vidxs = _model->getFaceVertices( fid);
             os << tttt << _vmap.at(vidxs[0]) << " " << _vmap.at(vidxs[1]) << " " << _vmap.at(vidxs[2]) << n;
@@ -400,7 +400,7 @@ private:
         TB ttt(3), tttt(4);
         NL n(1);
         int i = 0;
-        BOOST_FOREACH ( int fid, _fidv)
+        for ( int fid : _fidv)
         {
             os << tttt << i << " " << (i+1) << " " << (i+2) << n;
             i += 3;
@@ -415,7 +415,7 @@ private:
         TB ttt(3), tttt(4);
         NL n(1);
         os << ttt << "MESH_FACE_SHADING_LIST {" << n;
-        BOOST_FOREACH ( int fid, _fidv)
+        for ( int fid : _fidv)
             os << tttt << 0 << n;
         os << ttt << "}" << n;  // end MESH_FACE_SHADING_LIST
     }   // end writeFaceShadingList
@@ -436,7 +436,7 @@ private:
         NL n(1);
         int i = 0;
         os << ttt << "MESH_FACE_TEXTURE_COORD_LIST {" << n;
-        BOOST_FOREACH ( int fid, _fidv)
+        for ( int fid : _fidv)
         {
             const int uv0 = getUVListIndex( fid, 0);
             const int uv1 = getUVListIndex( fid, 1);
@@ -458,7 +458,7 @@ private:
         NL n(1);
         os << ttt << "MODEL_POSITION_LIST {" << n;
         os << std::fixed << std::setprecision(6);
-        BOOST_FOREACH ( int vid, _vidv)
+        for ( int vid : _vidv)
         {
             const cv::Vec3f& v = _model->vtx(vid);
             os << tttt << v[0] << " " << v[1] << " " << v[2] << n;
@@ -475,7 +475,7 @@ private:
         NL n(1);
         os << ttt << "MODEL_NORMAL_LIST {" << n;
         os << std::fixed << std::setprecision(6);
-        BOOST_FOREACH ( int fid, _fidv)
+        for ( int fid : _fidv)
         {
             os << tttt << nrm[0] << " " << nrm[1] << " " << nrm[2] << n;
             os << tttt << nrm[0] << " " << nrm[1] << " " << nrm[2] << n;
@@ -491,7 +491,7 @@ private:
         NL n(1);
         os << ttt << "MODEL_TEXTURE_COORD_LIST {" << n;
         os << std::fixed << std::setprecision(6);
-        BOOST_FOREACH ( const cv::Vec2f* uv, _uvlist)
+        for ( const cv::Vec2f* uv : _uvlist)
             os << tttt << std::fixed << (*uv)[0] << " " << (*uv)[1] << " " << 0.0 << " " << 0.0 << n;
         os << ttt << "}" << n;  // end MODEL_TEXTURE_COORD_LIST
     }   // end writeTextureCoordList
@@ -590,7 +590,7 @@ bool IDTFExporter::doSave( const ObjModel::Ptr inmodel, const std::string& filen
     }   // end else
 
     const IntSet& mids = model->getMaterialIds();
-    BOOST_FOREACH ( int mid, mids)
+    for ( int mid : mids)
     {
         // Textures need to be output in TGA format for conversion to the IDTF intermediate format.
         const std::vector<cv::Mat>& ambient = model->getMaterialAmbient(mid);

@@ -24,9 +24,7 @@
 
 #include "ObjModelExporter.h"
 
-
-namespace RModelIO
-{
+namespace RModelIO {
 
 class rModelIO_EXPORT OBJExporter : public ObjModelExporter
 {
@@ -35,7 +33,7 @@ public:
     virtual ~OBJExporter(){}
 
 protected:
-    virtual bool doSave( const RFeatures::ObjModel::Ptr, const std::string& filename);
+    bool doSave( const RFeatures::ObjModel::Ptr, const std::string& filename) override;
 };  // end class
 
 }   // end namespace

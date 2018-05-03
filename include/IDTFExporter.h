@@ -24,9 +24,7 @@
 
 #include "ObjModelExporter.h"
 
-
-namespace RModelIO
-{
+namespace RModelIO {
 
 class rModelIO_EXPORT IDTFExporter : public ObjModelExporter
 {

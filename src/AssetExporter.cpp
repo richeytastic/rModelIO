@@ -20,16 +20,13 @@
 #include <assimp/Exporter.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/unordered_set.hpp>
 #include <cassert>
 using RModelIO::AssetExporter;
 using RFeatures::ObjModel;
 
 
-namespace
-{
+namespace {
 
 typedef boost::filesystem::path Path;
 typedef unsigned char byte;
@@ -137,7 +134,7 @@ void setMaterial( aiMesh* mesh, const ObjModel::Ptr model, int matId, IntSet& re
 
     unsigned int j = 0; // AssImp vertex ID
     unsigned int i = 0; // AssImp face ID
-    BOOST_FOREACH ( int fid, fids)
+    for ( int fid : fids)
     {
         remfids.erase(fid);
         const int* uvids = model->getFaceUVs(fid);
@@ -180,7 +177,7 @@ void setNonMaterialMesh( aiMesh* mesh, const ObjModel::Ptr model, const IntSet& 
 
     unsigned int j = 0; // AssImp vertex ID
     unsigned int i = 0; // AssImp face ID
-    BOOST_FOREACH ( int fid, remfids)
+    for ( int fid : remfids)
     {
         assert( model->getFaceMaterialId( fid) == -1);  // Should be true since face not associated with Material.
         assert( model->getFaceUVs( fid) == NULL);       // Should return NULL since not associated with a Material.
@@ -250,7 +247,7 @@ aiScene* createSceneFromMeshes( std::vector<Mesh>& meshes)
 // public
 AssetExporter::AssetExporter() : RModelIO::ObjModelExporter()
 {
-    boost::unordered_set<std::string> disallowed;
+    std::unordered_set<std::string> disallowed;
     disallowed.insert("3d");
     disallowed.insert("assbin");  // Leave as import only
     disallowed.insert("assxml");
@@ -266,7 +263,7 @@ AssetExporter::AssetExporter() : RModelIO::ObjModelExporter()
     disallowed.insert("x");     // Doesn't work for large files
     disallowed.insert("3ds");   // Doesn't work for large files
 
-    boost::unordered_set<std::string> descSet;  // Don't add same descriptions more than once.
+    std::unordered_set<std::string> descSet;  // Don't add same descriptions more than once.
     Assimp::Exporter exporter;
     const size_t n = exporter.GetExportFormatCount();
     for ( size_t i = 0; i < n; ++i)
@@ -306,7 +303,7 @@ bool AssetExporter::doSave( const ObjModel::Ptr model, const std::string& fname)
 
     // Set a mesh for each material (having texture coordinates associated with polygons).
     const IntSet& matIds = model->getMaterialIds();
-    BOOST_FOREACH ( int matId, matIds)
+    for ( int matId : matIds)
     {
         Mesh mesh;
         meshes.push_back(mesh);

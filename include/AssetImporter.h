@@ -24,8 +24,7 @@
 
 #include "ObjModelImporter.h"
 
-namespace RModelIO
-{
+namespace RModelIO {
 
 class rModelIO_EXPORT AssetImporter : public ObjModelImporter
 {
@@ -42,9 +41,9 @@ public:
     // Get the available formats as extension description pairs. These are not
     // enabled by default. Use enableFormat( fmt) below where fmt is the extension
     // (the first item of the available pairs returned here).
-    const boost::unordered_map<std::string, std::string>& getAvailable() const { return _available;}
+    const std::unordered_map<std::string, std::string>& getAvailable() const { return _available;}
 
-    // Returns true if the format is enabled.
+    // Returns true if the format is enabled (safe to call multiple times with same parameter).
     bool enableFormat( const std::string& ext);
 
 protected:
@@ -53,7 +52,7 @@ protected:
 private:
     bool _loadTextures;
     bool _failOnNonTriangles;
-    boost::unordered_map<std::string, std::string> _available;
+    std::unordered_map<std::string, std::string> _available;
 };  // end class
 
 }   // end namespace

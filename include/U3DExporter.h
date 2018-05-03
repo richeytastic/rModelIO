@@ -32,8 +32,7 @@
 
 #include "ObjModelExporter.h"
 
-namespace RModelIO
-{
+namespace RModelIO {
 
 class rModelIO_EXPORT U3DExporter : public ObjModelExporter
 {

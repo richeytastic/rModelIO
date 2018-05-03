@@ -19,18 +19,15 @@
 using RModelIO::OBJExporter;
 using RFeatures::ObjModel;
 #include <boost/filesystem/operations.hpp>
-#include <boost/foreach.hpp>
 #include <fstream>
 
 
-OBJExporter::OBJExporter()
-    : RModelIO::ObjModelExporter()
+OBJExporter::OBJExporter() : RModelIO::ObjModelExporter()
 {
     addSupported( "obj", "Wavefront OBJ");
 }   // end ctor
 
-namespace
-{
+namespace {
 
 std::string getMaterialName( const std::string& fname, int midx)
 {
@@ -65,7 +62,7 @@ std::string writeMaterialFile( const ObjModel::Ptr model, const std::string& fna
         int pmid = 0;   // Will be set to the 'pseudo' material ID in the event nfaces < total model faces.
         size_t nfaces = 0;
         const IntSet& mids = model->getMaterialIds();
-        BOOST_FOREACH ( int mid, mids)
+        for ( int mid : mids)
         {
             nfaces += model->getMaterialFaceIds(mid).size();
             const std::string matname = getMaterialName( fname, mid);
@@ -140,13 +137,13 @@ std::string writeMaterialFile( const ObjModel::Ptr model, const std::string& fna
 }   // end writeMaterialFile
 
 
-typedef boost::unordered_map<int,int> IntIntMap;
+typedef std::unordered_map<int,int> IntIntMap;
 
 int writeVertices( std::ostream& os, const ObjModel::Ptr model, IntIntMap& obj2FileVids)
 {
     int i = 0;
     const IntSet& vidxs = model->getVertexIds();
-    BOOST_FOREACH ( int vidx, vidxs)
+    for ( int vidx : vidxs)
     {
         obj2FileVids[vidx] = ++i;   // Pre-increment (.obj vertex list starts at 1)
         const cv::Vec3f& v = model->vtx(vidx);
@@ -160,7 +157,7 @@ void writeMaterialUVs( std::ostream& os, const ObjModel::Ptr model, int midx, In
 {
     int i = 0;
     const IntSet& uvids = model->getUVs( midx);
-    BOOST_FOREACH ( int uvid, uvids)
+    for ( int uvid : uvids)
     {
         uvmap[uvid] = ++i;
         const cv::Vec2f& uv = model->uv(midx, uvid);
@@ -174,7 +171,7 @@ void writeMaterialFaces( std::ostream& os, const ObjModel::Ptr model, int midx,
                          const IntIntMap& vmap, const IntIntMap& uvmap, IntSet& rfids)
 {
     const IntSet& mfids = model->getMaterialFaceIds( midx);
-    BOOST_FOREACH ( int fid, mfids)
+    for ( int fid : mfids)
     {
         rfids.erase(fid);
         const int* vidxs = model->getFaceVertices(fid);
@@ -217,7 +214,7 @@ bool OBJExporter::doSave( const ObjModel::Ptr model, const std::string& fname)
         int pmid = 0;   // Pseudo material ID if required.
         IntSet remfids = model->getFaceIds();   // Will hold face IDs not associated with a material
         const IntSet& mids = model->getMaterialIds();
-        BOOST_FOREACH ( int mid, mids)
+        for ( int mid : mids)
         {
             const std::string mname = getMaterialName( fname, mid);
             ofs << "# " << model->getUVs(mid).size() << " UV coordinates on material '" << mname << "'" << std::endl;
@@ -237,7 +234,7 @@ bool OBJExporter::doSave( const ObjModel::Ptr model, const std::string& fname)
             const std::string mname = getMaterialName( fname, pmid);
             ofs << "# Mesh '" << mname << "' with " << remfids.size() << " faces" << std::endl;
             ofs << "usemtl " << mname << std::endl;
-            BOOST_FOREACH ( int fid, remfids)
+            for ( int fid : remfids)
             {
                 const int* vidxs = model->getFaceVertices(fid);
                 ofs << "f\t" << vmap.at(vidxs[0]) << " " << vmap.at(vidxs[1]) << " " << vmap.at(vidxs[2]) << std::endl;
