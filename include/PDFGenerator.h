@@ -103,7 +103,7 @@ public:
     // New figure inserter. Returns NULL if unable to convert given model to U3D.
     // Don't try to delete the returned object - will be deleted automatically
     // when the PDFGenerator's destructor runs.
-    LaTeXU3DInserter* getFigureInserter( const RFeatures::ObjModel::Ptr,
+    LaTeXU3DInserter* getFigureInserter( const RFeatures::ObjModel*,
                                          float figWidthMM, float figHeightMM, // Width and height of figure in mm
                                          const RFeatures::CameraParams& cam,  // ONLY pos-focus distance used - see above!
                                          const std::string& figCaption="",    // Caption ignored if empty
@@ -125,7 +125,7 @@ public:
         // to the IDTFConverter program in order for the second version to work
         // (see RModelIO::U3DExporter for details).
         bool setModel( const std::string& u3dfilename);
-        bool setModel( const RFeatures::ObjModel::Ptr);
+        bool setModel( const RFeatures::ObjModel*);
 
         float _fw;
         float _fh;

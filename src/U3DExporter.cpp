@@ -87,7 +87,7 @@ bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 
 
 // protected
-bool U3DExporter::doSave( const ObjModel::Ptr model, const std::string& filename)
+bool U3DExporter::doSave( const ObjModel* model, const std::string& filename)
 {
     bool savedOkay = true;
 

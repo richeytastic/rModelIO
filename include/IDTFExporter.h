@@ -38,7 +38,7 @@ public:
     virtual ~IDTFExporter();
 
 protected:
-    virtual bool doSave( const RFeatures::ObjModel::Ptr, const std::string& filename);
+    virtual bool doSave( const RFeatures::ObjModel*, const std::string& filename);
 
 private:
     bool _delOnDtor;

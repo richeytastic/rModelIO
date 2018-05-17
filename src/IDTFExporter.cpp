@@ -272,7 +272,7 @@ void resourceListTexture( std::ostream& os, const std::vector<std::pair<int, std
 struct ModelResource
 {
     // matID >= 0 if the model has materials.
-    ModelResource( const ObjModel::Ptr model, int matID) : _model(model)
+    ModelResource( const ObjModel* model, int matID) : _model(model)
     {
         // Get repeatable sequence of face IDs and the unique set of texture coords for the material
         const IntSet* fids;
@@ -334,7 +334,7 @@ struct ModelResource
     }   // end writeMesh
 
 private:
-    const ObjModel::Ptr _model;
+    const ObjModel* _model;
     std::vector<int> _fidv;                 // Predictable seq. of face IDs
     std::vector<int> _vidv;                 // Predictable seq. of vertex IDs
     unordered_map<int,int> _vmap;    // ObjModel vertexID --> MODEL_POSITION_LIST index
@@ -500,7 +500,7 @@ private:
 
 
 // Write the model data in IDTF format. Only vertex, face, and texture mapping info are stored.
-std::string writeFile( const ObjModel::Ptr model, const std::string& filename, const std::vector<std::pair<int, std::string> >& mtf)
+std::string writeFile( const ObjModel* model, const std::string& filename, const std::vector<std::pair<int, std::string> >& mtf)
 {
     const int nTX = (int)mtf.size();
     const int nmesh = std::max(1,nTX);
@@ -567,7 +567,7 @@ std::string writeFile( const ObjModel::Ptr model, const std::string& filename, c
 
 
 // protected
-bool IDTFExporter::doSave( const ObjModel::Ptr inmodel, const std::string& filename)
+bool IDTFExporter::doSave( const ObjModel* inmodel, const std::string& filename)
 {
     reset();
     // Need to set all the texture map filenames (if present) and save out the textures.
@@ -578,15 +578,16 @@ bool IDTFExporter::doSave( const ObjModel::Ptr inmodel, const std::string& filen
     tpath /= mpath.stem();             // Use the stem of the save filename as the basis for the texture filenames
 
     std::vector<std::pair<int, std::string> > mtf;  // Associate the texture filenames with the material ID
-    ObjModel::Ptr model;
+    const ObjModel* model = NULL;
+    ObjModel::Ptr nmodel;
     if ( inmodel->getNumMaterials() <= 1)
         model = inmodel;
     else
     {
         std::cerr << "[STATUS] RModelIO::IDTFExporter::doSave: Multi-material model being copied to single material model for export" << std::endl;
-        ObjModel::Ptr nmodel = ObjModel::copy( inmodel, false);
+        nmodel = ObjModel::copy( inmodel, false);
         nmodel->mergeMaterials();
-        model = nmodel;
+        model = nmodel.get();
     }   // end else
 
     const IntSet& mids = model->getMaterialIds();

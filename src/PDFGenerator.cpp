@@ -20,7 +20,6 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/process.hpp>
-#include <boost/foreach.hpp>
 #include <cassert>
 #include <fstream>
 #include <iomanip>
@@ -56,7 +55,7 @@ PDFGenerator::PDFGenerator( bool remGen) : _remGen(remGen)
 // public
 PDFGenerator::~PDFGenerator()
 {
-    BOOST_FOREACH ( const LaTeXU3DInserter* inserter, _inserters)
+    for ( const LaTeXU3DInserter* inserter : _inserters)
         delete inserter;
 }   // end dtor
 
@@ -133,7 +132,7 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
 
 
 // public
-PDFGenerator::LaTeXU3DInserter* PDFGenerator::getFigureInserter( const ObjModel::Ptr model,
+PDFGenerator::LaTeXU3DInserter* PDFGenerator::getFigureInserter( const ObjModel* model,
                                                                  float fw, float fh,
                                                                  const Cam& cam,
                                                                  const std::string& figCap, const std::string& figLab,
@@ -163,7 +162,7 @@ PDFGenerator::LaTeXU3DInserter::LaTeXU3DInserter( float fw, float fh,
 // private
 PDFGenerator::LaTeXU3DInserter::~LaTeXU3DInserter()
 {
-    BOOST_FOREACH ( const std::string& tmpfile, _delfiles)
+    for ( const std::string& tmpfile : _delfiles)
     {
         boost::filesystem::remove( tmpfile);
         std::cerr << "Removed " << tmpfile << std::endl;
@@ -189,7 +188,7 @@ bool PDFGenerator::LaTeXU3DInserter::setModel( const std::string& u3dfile)
 
 
 // public
-bool PDFGenerator::LaTeXU3DInserter::setModel( const ObjModel::Ptr model)
+bool PDFGenerator::LaTeXU3DInserter::setModel( const ObjModel* model)
 {
     bool setokay = false;
     const std::string u3dtmp = boost::filesystem::unique_path().string() + ".u3d";

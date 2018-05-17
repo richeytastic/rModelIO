@@ -33,7 +33,7 @@ public:
     virtual ~OBJExporter(){}
 
 protected:
-    bool doSave( const RFeatures::ObjModel::Ptr, const std::string& filename) override;
+    bool doSave( const RFeatures::ObjModel*, const std::string& filename) override;
 };  // end class
 
 }   // end namespace

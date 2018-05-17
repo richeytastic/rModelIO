@@ -48,7 +48,7 @@ bool equal( const cv::Mat a, const cv::Mat b)
 
 
 // Write out the .mtl file - returning any error string.
-std::string writeMaterialFile( const ObjModel::Ptr model, const std::string& fname)
+std::string writeMaterialFile( const ObjModel* model, const std::string& fname)
 {
     const boost::filesystem::path ppath = boost::filesystem::path(fname).parent_path();
     std::string err;
@@ -139,7 +139,7 @@ std::string writeMaterialFile( const ObjModel::Ptr model, const std::string& fna
 
 typedef std::unordered_map<int,int> IntIntMap;
 
-int writeVertices( std::ostream& os, const ObjModel::Ptr model, IntIntMap& obj2FileVids)
+int writeVertices( std::ostream& os, const ObjModel* model, IntIntMap& obj2FileVids)
 {
     int i = 0;
     const IntSet& vidxs = model->getVertexIds();
@@ -153,7 +153,7 @@ int writeVertices( std::ostream& os, const ObjModel::Ptr model, IntIntMap& obj2F
 }   // end writeVertices
 
 
-void writeMaterialUVs( std::ostream& os, const ObjModel::Ptr model, int midx, IntIntMap& uvmap)
+void writeMaterialUVs( std::ostream& os, const ObjModel* model, int midx, IntIntMap& uvmap)
 {
     int i = 0;
     const IntSet& uvids = model->getUVs( midx);
@@ -167,7 +167,7 @@ void writeMaterialUVs( std::ostream& os, const ObjModel::Ptr model, int midx, In
 }   // end writeMaterialUVs
 
 
-void writeMaterialFaces( std::ostream& os, const ObjModel::Ptr model, int midx,
+void writeMaterialFaces( std::ostream& os, const ObjModel* model, int midx,
                          const IntIntMap& vmap, const IntIntMap& uvmap, IntSet& rfids)
 {
     const IntSet& mfids = model->getMaterialFaceIds( midx);
@@ -186,7 +186,7 @@ void writeMaterialFaces( std::ostream& os, const ObjModel::Ptr model, int midx,
 
 
 // protected
-bool OBJExporter::doSave( const ObjModel::Ptr model, const std::string& fname)
+bool OBJExporter::doSave( const ObjModel* model, const std::string& fname)
 {
     const std::string matfile = boost::filesystem::path(fname).replace_extension("mtl").string();
     std::string err = writeMaterialFile( model, matfile);
