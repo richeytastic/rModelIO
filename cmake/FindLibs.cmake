@@ -241,7 +241,7 @@ if(WITH_OPENCV) # OpenCV
 endif()
 
 if(WITH_VTK)    # VTK
-    set( VTK_VER 7.1)
+    set( VTK_VER 8.1)
     if(IS_DEBUG)
         set( VTK_DIR "${LIB_PRE_REQS}/VTK/debug/lib/cmake/vtk-${VTK_VER}" CACHE PATH "Location of VTKConfig.cmake")
     else()
@@ -262,6 +262,7 @@ if(WITH_QT)     # Qt5
     add_definitions( ${Qt5Widgets_DEFINITIONS})
     add_definitions( ${Qt5Sql_DEFINITIONS})
     set( QT_LIBRARIES Qt5::Widgets Qt5::Sql)
+    message( STATUS "Using Qt5 at ${Qt5_DIR}")
 endif()
 
 if(WITH_CGAL)   # CGAL
