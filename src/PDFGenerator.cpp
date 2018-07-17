@@ -20,6 +20,9 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/process.hpp>
+#ifdef _WIN32
+#include <boost/process/windows.hpp>
+#endif
 #include <cassert>
 #include <fstream>
 #include <iomanip>
@@ -29,7 +32,6 @@
 using RModelIO::PDFGenerator;
 using RModelIO::U3DExporter;
 using RFeatures::ObjModel;
-typedef RFeatures::CameraParams Cam;
 
 std::string PDFGenerator::pdflatex( "pdflatex"); // public static
 
@@ -53,14 +55,6 @@ PDFGenerator::PDFGenerator( bool remGen) : _remGen(remGen)
 
 
 // public
-PDFGenerator::~PDFGenerator()
-{
-    for ( const LaTeXU3DInserter* inserter : _inserters)
-        delete inserter;
-}   // end dtor
-
-
-// public
 bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
 {
     namespace bp = boost::process;
@@ -73,7 +67,7 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
     boost::filesystem::path tpath = texfile;
     bool success = false;
     std::ostringstream errMsg;
-    std::cerr << "Attempting to generate PDF from " << texfile << std::endl;
+    std::cerr << "[INFO] RModelIO::PDFGenerator: Attempting to generate PDF from " << texfile << std::endl;
 
     try
     {
@@ -88,7 +82,13 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
         //if ( genpath.empty())
         //    genpath = boost::filesystem::path( pdflatex);
         //bp::child c(genpath, "-interaction", "batchmode", texfile, bp::std_out > stdout, bp::std_err > stderr);
-        bp::child c( pdflatex + " -interaction batchmode -output-directory " + tpath.parent_path().string() + " " + texfile);
+        std::string cmd = pdflatex + " -interaction batchmode -quiet -output-directory " + tpath.parent_path().string() + " " + texfile;
+        std::cerr << cmd << std::endl;
+#ifdef _WIN32
+        bp::child c( cmd, bp::windows::hide);
+#else
+        bp::child c( cmd);
+#endif
         c.wait();
         success = c.exit_code() == 0;
         if ( success)
@@ -130,122 +130,3 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
     return success;
 }   // end operator()
 
-
-// public
-PDFGenerator::LaTeXU3DInserter* PDFGenerator::getFigureInserter( const ObjModel* model,
-                                                                 float fw, float fh,
-                                                                 const Cam& cam,
-                                                                 const std::string& figCap, const std::string& figLab,
-                                                                 bool actOnOpen)
-{
-    LaTeXU3DInserter* modelInserter = new LaTeXU3DInserter( fw, fh, cam, figCap, figLab, actOnOpen);
-    if ( !modelInserter->setModel(model))
-    {
-        delete modelInserter;
-        return NULL;
-    }   // end if
-    _inserters.push_back(modelInserter);
-    return modelInserter;
-}   // end getFigureInserter
-
-
-// private
-PDFGenerator::LaTeXU3DInserter::LaTeXU3DInserter( float fw, float fh,
-                                                  const Cam& cam,
-                                                  const std::string& figCap, const std::string& figLab,
-                                                  bool actOnOpen)
-    : _fw(fw), _fh(fh), _cam(cam), _figCap(figCap), _figLab(figLab), _actOnOpen(actOnOpen)
-{
-}   // end ctor
-
-
-// private
-PDFGenerator::LaTeXU3DInserter::~LaTeXU3DInserter()
-{
-    for ( const std::string& tmpfile : _delfiles)
-    {
-        boost::filesystem::remove( tmpfile);
-        std::cerr << "Removed " << tmpfile << std::endl;
-    }   // end foreach
-    _delfiles.clear();
-}   // end dtor
-
-
-// public
-bool PDFGenerator::LaTeXU3DInserter::setModel( const std::string& u3dfile)
-{
-    bool setokay = false;
-    typedef boost::filesystem::path Path;
-    if ( boost::algorithm::to_lower_copy( Path(u3dfile).extension().string()) != ".u3d")
-        std::cerr << "[ERROR] RModelIO::LaTeXU3DInserter::setModel: " << u3dfile << " must have .u3d extension!" << std::endl;
-    else
-    {
-        _u3dfile = u3dfile;
-        setokay = true;
-    }   // end else
-    return setokay;
-}   // end setModel
-
-
-// public
-bool PDFGenerator::LaTeXU3DInserter::setModel( const ObjModel* model)
-{
-    bool setokay = false;
-    const std::string u3dtmp = boost::filesystem::unique_path().string() + ".u3d";
-#ifndef NDEBUG
-    U3DExporter u3dxptr(false);
-#else
-    U3DExporter u3dxptr;
-#endif
-    if ( !u3dxptr.save( model, u3dtmp))
-    {
-        std::cerr << u3dxptr.err() << std::endl;
-        return false;
-    }   // end if
-
-    _u3dfile = u3dtmp;
-    _delfiles.push_back(u3dtmp);
-    return true;
-}   // end setModel
-
-
-
-// public
-std::ostream& RModelIO::operator<<( std::ostream& os, const PDFGenerator::LaTeXU3DInserter& params)
-{
-    const cv::Vec3f& coo = params._cam.focus;
-    cv::Vec3f cpos = params._cam.pos;  // Will be changing cpos because of horrible media9/Adobe Reader camera orientation issue.
-    const double roo = cv::norm(cpos - coo);
-    const double fov = params._cam.fov;
-
-    // Set cpos to be roo distance along +Z from coo
-    cpos = coo + cv::Vec3f(0,0,(float)roo);
-
-    cv::Vec3f c2c = cpos - coo;
-    cv::normalize( c2c, c2c); // Doesn't need normalizing, but such things are habitual...
-
-    os << "\\begin{figure}[!ht]" << std::endl;
-    os << "\\centering" << std::endl;
-    os << "\\includemedia[" << std::endl;
-    os << "\twidth=" << params._fw << "mm," << std::endl;
-    os << "\theight=" << params._fh << "mm," << std::endl;
-    os << "\tkeepaspectratio," << std::endl;
-    os << "\tactivate=" << (params._actOnOpen ? "pageopen" : "click") << "," << std::endl;
-    os << "\tplaybutton=plain,    % plain | fancy (default) | none" << std::endl;
-    os << "\t3Dlights=Hard," << std::endl;
-    os << "\t3Dbg=1 1 1,          % background colour of scene (r g b) \\in [0,1] (can't set transparency if set)" << std::endl;
-    os << "\t3Dcoo=" << coo[0] << " " << coo[1] << " " << coo[2] << ",         % centre of orbit of the camera (x y z)" << std::endl;
-    os << "\t3Dc2c=" << c2c[0] << " " << c2c[1] << " " << c2c[2] << ",         % direction to camera from coo" << std::endl;
-    os << "\t3Droll=0,           % clockwise roll in degrees around optical axis" << std::endl;
-    os << "\t3Droo=" << std::left << std::fixed << std::setprecision(3) << roo << ",        % radius of obrbit" << std::endl;
-    os << "\t3Daac=" << std::left << std::fixed << std::setprecision(3) << fov << "         % perspective fov in degrees" << std::endl;
-    os << "\t]{}{" << params._u3dfile << "}" << std::endl;
-
-    if ( !params._figCap.empty())
-        os << "\\caption{" << params._figCap << "}" << std::endl;
-    if ( !params._figLab.empty())
-        os << "\\label{" << params._figLab << "}" << std::endl;
-
-    os << "\\end{figure}" << std::endl;
-    return os;
-}   // end operator<<

@@ -316,7 +316,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
                     setObjectTextureCoordinates( mesh, matId, *vidxs, *fidxs, model);
             }   // end if
             else
-                std::cerr << "  Mesh defines no texture coordinates - no material set!" << std::endl;
+                std::cerr << "  Mesh defines no texture coords - no material set!" << std::endl;
         }   // end if
         std::cerr << "  ===================================================" << std::endl;
     }   // end for

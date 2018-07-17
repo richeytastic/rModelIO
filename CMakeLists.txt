@@ -23,6 +23,7 @@ set( INCLUDE_FILES
     #"${INCLUDE_DIR}/AssetExporter.h"
     "${INCLUDE_DIR}/IDTFExporter.h"
     #"${INCLUDE_DIR}/LASImporter.h"
+    "${INCLUDE_DIR}/LaTeXU3DInserter.h"
     "${INCLUDE_DIR}/OBJExporter.h"
     "${INCLUDE_DIR}/ObjModelExporter.h"
     "${INCLUDE_DIR}/ObjModelImporter.h"
@@ -39,6 +40,7 @@ set( SRC_FILES
     #${SRC_DIR}/AssetExporter
     ${SRC_DIR}/IDTFExporter
     #${SRC_DIR}/LASImporter
+    ${SRC_DIR}/LaTeXU3DInserter
     ${SRC_DIR}/OBJExporter
     ${SRC_DIR}/ObjModelExporter
     ${SRC_DIR}/ObjModelImporter

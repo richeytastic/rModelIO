@@ -24,6 +24,9 @@
 #include <cstdio>
 #include <boost/filesystem/operations.hpp>
 #include <boost/process.hpp>    // Requires at least boost 1.64+
+#ifdef _WIN32
+#include <boost/process/windows.hpp>    // For hiding console window
+#endif
 using RModelIO::IDTFExporter;
 using RModelIO::U3DExporter;
 using RFeatures::ObjModel;
@@ -63,6 +66,7 @@ bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
     {
         std::ostringstream cmd;
         cmd << "\"" << U3DExporter::IDTFConverter << "\""
+            << " -debuglevel 0" // no debug dump
             << " -pq 1000"  // Position quality MAX
             << " -tcq 1000" // Texture coordinates quality MAX
             << " -gq 1000"  // Geometry quality MAX
@@ -71,9 +75,16 @@ bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
             << " -eo 65535" // Export everything
             << " -input " << idtffile
             << " -output " << u3dfile;
-        boost::process::child c( cmd.str());
+        const std::string pexe = cmd.str();
+        std::cerr << pexe << std::endl;
+#ifdef _WIN32
+        boost::process::child c( pexe, boost::process::windows::hide);
+#else
+        boost::process::child c( pexe);
+#endif
         c.wait();
         success = c.exit_code() == 0;
+        //success = std::system( pexe.c_str()) == 0;
     }   // end try
     catch ( const std::exception& e)
     {
@@ -101,7 +112,7 @@ bool U3DExporter::doSave( const ObjModel* model, const std::string& filename)
     }   // end if
     else if ( !convertIDTF2U3D( idtffile, filename))
     {
-        setErr("Unable to convert IDTF to U3D!");
+        setErr("Unable to convert from IDTF format to U3D format!");
         savedOkay = false;
     }   // end if
 

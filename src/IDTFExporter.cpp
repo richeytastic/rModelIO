@@ -73,6 +73,8 @@ void IDTFExporter::reset()
 }   // end reset
 
 
+namespace {
+
 struct TB {
     TB(int ntabs=0) : n(ntabs) {}
     int n;
@@ -564,6 +566,8 @@ std::string writeFile( const ObjModel* model, const std::string& filename, const
     return errMsg;
 }   // end writeFile
 
+}   // end namespace
+
 
 
 // protected
@@ -619,7 +623,8 @@ bool IDTFExporter::doSave( const ObjModel* inmodel, const std::string& filename)
         _tgafiles.push_back( tgafname);    // Record to delete on destruction
         if ( !RFeatures::saveAsTGA( tx, tgafname))
             return false;
-        mtf.push_back( std::pair<int, std::string>( mid, Path(tgafname).filename().string()));  // Store just the filename without path
+        mtf.push_back( std::pair<int, std::string>( mid, tgafname));
+        //mtf.push_back( std::pair<int, std::string>( mid, Path(tgafname).filename().string()));  // Store just the filename without path
     }   // end foreach
 
     _idtffile = filename;
