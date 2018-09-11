@@ -621,7 +621,7 @@ bool IDTFExporter::doSave( const ObjModel* inmodel, const std::string& filename)
         oss << tpath.string() << "_M" << mid << ".tga";
         const std::string tgafname = oss.str();
         _tgafiles.push_back( tgafname);    // Record to delete on destruction
-        if ( !RFeatures::saveAsTGA( tx, tgafname))
+        if ( !RFeatures::saveTGA( tx, tgafname))
             return false;
         mtf.push_back( std::pair<int, std::string>( mid, tgafname));
         //mtf.push_back( std::pair<int, std::string>( mid, Path(tgafname).filename().string()));  // Store just the filename without path

@@ -16,6 +16,7 @@
  ************************************************************************/
 
 #include <AssetImporter.h>
+#include <FeatureUtils.h>   // RFeatures
 #include <FileIO.h>     // rlib
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -41,7 +42,10 @@ cv::Mat loadImage( const boost::filesystem::path& ppath, const std::string& imgf
     boost::filesystem::path imgPath = ppath / imgfile;
     cv::Mat m;
     if ( boost::filesystem::exists( imgPath))
-        m = cv::imread( imgPath.string());
+    {
+        if ( !RFeatures::loadImage( imgPath.string(), m))
+            std::cerr << "[ERROR] RFeatures::loadImage(" << imgPath.string() << "): FAILED!" << std::endl;
+    }   // end if
     return m;
 }   // loadImage
 
@@ -162,7 +166,7 @@ int setObjectFaces( const aiMesh* mesh, const std::vector<int>& vidxs, std::vect
         const int v0 = vidxs[aiface.mIndices[0]];
         const int v1 = vidxs[aiface.mIndices[1]];
         const int v2 = vidxs[aiface.mIndices[2]];
-        const int fid = model->setFace( v0, v1, v2);
+        const int fid = model->addFace( v0, v1, v2);
 
         if ( faceSet.count(fid))
         {
@@ -180,7 +184,7 @@ int setObjectFaces( const aiMesh* mesh, const std::vector<int>& vidxs, std::vect
 }   // end setObjectFaces
 
 
-void setObjectTextureCoordinates( const aiMesh* mesh, int matId, const std::vector<int>& vidxs, const std::vector<int>& fids, ObjModel::Ptr model)
+void setObjectTextureCoordinates( const aiMesh* mesh, int matId, const std::vector<int>& fids, ObjModel::Ptr model)
 {
     // Set the ordering of the texture offsets needed for visualisation
     const int nfaces = (int)mesh->mNumFaces;
@@ -188,22 +192,19 @@ void setObjectTextureCoordinates( const aiMesh* mesh, int matId, const std::vect
     const aiFace *aifaces = mesh->mFaces;
     for ( int i = 0; i < nfaces; ++i)
     {
-        if ( fids[i] < 0)
-            continue;
-
-        const uint* aiFaceVtxIdxs = aifaces[i].mIndices;   // The indices of the vertices from the mesh that make this polygon
-
-        const aiVector3D& aiuv0 = mesh->mTextureCoords[0][aiFaceVtxIdxs[0]];
-        const aiVector3D& aiuv1 = mesh->mTextureCoords[0][aiFaceVtxIdxs[1]];
-        const aiVector3D& aiuv2 = mesh->mTextureCoords[0][aiFaceVtxIdxs[2]];
-        const cv::Vec2f uvs[3] = { cv::Vec2f( aiuv0[0], aiuv0[1]), cv::Vec2f( aiuv1[0], aiuv1[1]), cv::Vec2f( aiuv2[0], aiuv2[1])};
-        const int vs[3] = {vidxs[aiFaceVtxIdxs[0]], vidxs[aiFaceVtxIdxs[1]], vidxs[aiFaceVtxIdxs[2]]};
-        model->setOrderedFaceUVs( matId, fids[i], vs, uvs);
+        if ( fids[i] >= 0)
+        {
+            const uint* aiFaceVtxIdxs = aifaces[i].mIndices;   // Indices of vertices from the mesh that make this polygon
+            const aiVector3D& aiuv0 = mesh->mTextureCoords[0][aiFaceVtxIdxs[0]];
+            const aiVector3D& aiuv1 = mesh->mTextureCoords[0][aiFaceVtxIdxs[1]];
+            const aiVector3D& aiuv2 = mesh->mTextureCoords[0][aiFaceVtxIdxs[2]];
+            const cv::Vec2f uvs[3] = { cv::Vec2f( aiuv0[0], aiuv0[1]), cv::Vec2f( aiuv1[0], aiuv1[1]), cv::Vec2f( aiuv2[0], aiuv2[1])};
+            model->setOrderedFaceUVs( matId, fids[i], uvs);
+        }   // end if
     }   // end for
 }   // end setObjectTextureCoordinates
 
 
-// private
 // Returns -1 if no textures loaded.
 int setObjectTextures( const boost::filesystem::path& ppath, const aiScene *scene, int meshIdx, ObjModel::Ptr model)
 {
@@ -245,7 +246,6 @@ int setObjectTextures( const boost::filesystem::path& ppath, const aiScene *scen
 }   // end setObjectTextures
 
 
-// private
 ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::path& ppath, bool loadTextures, bool failOnNonTriangles)
 {
     const aiScene* scene = importer->GetScene();
@@ -313,7 +313,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
                 // New materials are added only if they define a texture.
                 const int matId = setObjectTextures( ppath, scene, i, model);
                 if ( matId >= 0)
-                    setObjectTextureCoordinates( mesh, matId, *vidxs, *fidxs, model);
+                    setObjectTextureCoordinates( mesh, matId, *fidxs, model);
             }   // end if
             else
                 std::cerr << "  Mesh defines no texture coords - no material set!" << std::endl;
