@@ -144,7 +144,7 @@ void nodeModel( std::ostream& os, int meshID)
     os << "}" << n << n; // end NODE "MODEL"
 }   // end nodeModel
 
-
+/*
 void nodeLight( std::ostream& os, int lightID, const cv::Vec3f& pos)
 {
     TB t(1), tt(2), ttt(3), tttt(4);
@@ -183,6 +183,7 @@ void resourceLight( std::ostream& os, int lightID)
     os << t << "}" << n;
     os << "}" << n << n;
 }   // end resourceLight
+*/
 
 
 void resourceListShader( std::ostream& os, int nmesh, bool hasTX)
@@ -425,8 +426,7 @@ private:
 
     int getUVListIndex( int faceId, int uvOrderIndex/*[0,2]*/) const
     {
-        const int mid = _model->getFaceMaterialId(faceId);
-        assert( mid >= 0);
+        assert( _model->getFaceMaterialId(faceId) >= 0);
         const int uvid = _model->getFaceUVs(faceId)[uvOrderIndex];
         return _uvmap.at( uvid);
     }   // end getUVListIndex

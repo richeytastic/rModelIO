@@ -91,7 +91,6 @@ bool LaTeXU3DInserter::setModel( const std::string& u3dfile)
 // private
 bool LaTeXU3DInserter::setModel( const ObjModel* model, const std::string& sdir)
 {
-    bool setokay = false;
     const std::string u3dtmp = sdir + "/" + boost::filesystem::unique_path().replace_extension(".u3d").string();
 
 #ifndef NDEBUG
