@@ -4,7 +4,7 @@ set( CMAKE_VERBOSE_MAKEFILE FALSE)
 if(UNIX)
     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated -Wno-deprecated-declarations -Wno-error=unknown-pragmas")
 endif()
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 
 set( LIB_PRE_REQS "$ENV{INSTALL_PARENT_DIR}" CACHE PATH
     "Where library prerequisites are installed (if not in the standard system library locations).")
@@ -232,7 +232,7 @@ endif()
 
 
 if(WITH_BOOST)  # Boost
-    set( BOOST_ROOT "${LIB_PRE_REQS}/boost_1_64_0" CACHE PATH "Location of boost")
+    set( BOOST_ROOT "${LIB_PRE_REQS}/boost_1_68_0" CACHE PATH "Location of boost")
     set( BOOST_LIBRARYDIR "${BOOST_ROOT}/lib")
 
     if(WIN32)
@@ -248,7 +248,7 @@ if(WITH_BOOST)  # Boost
     add_definitions( -DBOOST_ALL_NO_LIB)    # Disable autolinking
     add_definitions( -DBOOST_ALL_DYN_LINK)  # Force dynamic linking (probably don't need this)
 
-    find_package( Boost 1.64 REQUIRED COMPONENTS system filesystem thread random regex)
+    find_package( Boost 1.65 REQUIRED COMPONENTS system filesystem regex random thread)
     include_directories( ${Boost_INCLUDE_DIRS})
 
     #message( STATUS "Boost_VERSION: ${Boost_VERSION}")

@@ -40,7 +40,7 @@ LaTeXU3DInserter::Ptr LaTeXU3DInserter::create( const ObjModel* model,
                                                 const std::string& figCap, const std::string& figLab,
                                                 bool actOnOpen, bool remgen)
 {
-    Ptr minserter(  new LaTeXU3DInserter( fw, fh, cam, figCap, figLab, actOnOpen, remgen), [](auto d){ delete d;});
+    Ptr minserter(  new LaTeXU3DInserter( fw, fh, cam, figCap, figLab, actOnOpen, remgen), [](LaTeXU3DInserter* d){ delete d;});
     if ( !minserter->setModel(model, sdirectory))
         minserter = nullptr;
     return minserter;
