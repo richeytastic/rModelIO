@@ -21,8 +21,8 @@
 get_filename_component( rModelIO_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 get_filename_component( rModelIO_ROOT_DIR  "${rModelIO_CMAKE_DIR}"           PATH)
 
-set( rModelIO_INCLUDE_DIRS "${rModelIO_ROOT_DIR}/include" CACHE PATH "The rModelIO include directories.")
-set( rModelIO_LIBRARY_DIR  "${rModelIO_ROOT_DIR}/lib"     CACHE PATH "The rModelIO library directory.")
+set( rModelIO_INCLUDE_DIRS "${rModelIO_ROOT_DIR}/../include" CACHE PATH "The rModelIO include directories.")
+set( rModelIO_LIBRARY_DIR  "${rModelIO_ROOT_DIR}"            CACHE PATH "The rModelIO library directory.")
 
 include( "${CMAKE_CURRENT_LIST_DIR}/Macros.cmake")
 get_library_suffix( _lsuff)
