@@ -69,9 +69,9 @@ std::string writeMaterialFile( const ObjModel* model, const std::string& fname)
             ofs << "newmtl " << matname << std::endl;
             ofs << "illum 1" << std::endl;
 
-            const std::vector<cv::Mat>& ambient = model->getMaterialAmbient(mid);
-            const std::vector<cv::Mat>& diffuse = model->getMaterialDiffuse(mid);
-            const std::vector<cv::Mat>& specular = model->getMaterialSpecular(mid);
+            const std::vector<cv::Mat>& ambient = model->materialAmbient(mid);
+            const std::vector<cv::Mat>& diffuse = model->materialDiffuse(mid);
+            const std::vector<cv::Mat>& specular = model->materialSpecular(mid);
 
             int i = 0;
             cv::Mat tx;

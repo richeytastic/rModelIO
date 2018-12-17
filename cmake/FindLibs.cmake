@@ -4,7 +4,7 @@ set( CMAKE_VERBOSE_MAKEFILE FALSE)
 if(UNIX)
     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated -Wno-deprecated-declarations -Wno-error=unknown-pragmas")
 endif()
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 set( LIB_PRE_REQS "$ENV{INSTALL_PARENT_DIR}" CACHE PATH
     "Where library prerequisites are installed (if not in the standard system library locations).")
@@ -78,6 +78,7 @@ if(WITH_FACETOOLS)
     find_package( FaceTools REQUIRED)
     include_directories( ${FaceTools_INCLUDE_DIRS})
     link_directories( ${FaceTools_LIBRARY_DIR})
+    set(WITH_LUA TRUE)
     set(WITH_QUAZIP TRUE)
     set(WITH_CPD TRUE)
     #set(WITH_CGAL TRUE)
@@ -249,8 +250,9 @@ if(WITH_BOOST)  # Boost
     set( Boost_USE_STATIC_RUNTIME OFF)
     add_definitions( -DBOOST_ALL_NO_LIB)    # Disable autolinking
     add_definitions( -DBOOST_ALL_DYN_LINK)  # Force dynamic linking (probably don't need this)
+    add_definitions( -DBOOST_SYSTEM_NO_DEPRECATED)
 
-    find_package( Boost 1.65 REQUIRED COMPONENTS system filesystem regex random thread)
+    find_package( Boost 1.68 REQUIRED COMPONENTS regex random thread filesystem system)
     include_directories( ${Boost_INCLUDE_DIRS})
 
     #message( STATUS "Boost_VERSION: ${Boost_VERSION}")
@@ -381,6 +383,9 @@ if(WITH_LUA)
     set( LUA_LIBRARY_DIR  "${LUA_DIR}/lib")
     include_directories( "${LUA_INCLUDE_DIRS}")
     link_directories( "${LUA_DIR}/lib")
+    set( LUA_LIBRARIES "liblua53.so")
+    if(WIN32)
+        set( LUA_LIBRARIES "lua53.dll")
+    endif()
     message( STATUS "Lua:        ${LUA_DIR}")
-    include_directories( "${LIB_PRE_REQS}/LuaBridge")   # Separate download!
 endif()

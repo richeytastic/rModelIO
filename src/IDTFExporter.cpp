@@ -403,11 +403,8 @@ private:
         TB ttt(3), tttt(4);
         NL n(1);
         int i = 0;
-        for ( int fid : _fidv)
-        {
+        for ( size_t j = 0; j < _fidv.size(); ++j, i += 3)
             os << tttt << i << " " << (i+1) << " " << (i+2) << n;
-            i += 3;
-        }   // end foreach
         os << ttt << "}" << n;
     }   // end writeFaceNormalList
 
@@ -418,7 +415,7 @@ private:
         TB ttt(3), tttt(4);
         NL n(1);
         os << ttt << "MESH_FACE_SHADING_LIST {" << n;
-        for ( int fid : _fidv)
+        for ( size_t j = 0; j < _fidv.size(); ++j)
             os << tttt << 0 << n;
         os << ttt << "}" << n;  // end MESH_FACE_SHADING_LIST
     }   // end writeFaceShadingList
@@ -477,7 +474,7 @@ private:
         NL n(1);
         os << ttt << "MODEL_NORMAL_LIST {" << n;
         os << std::fixed << std::setprecision(6);
-        for ( int fid : _fidv)
+        for ( size_t j = 0; j < _fidv.size(); ++j)
         {
             os << tttt << nrm[0] << " " << nrm[1] << " " << nrm[2] << n;
             os << tttt << nrm[0] << " " << nrm[1] << " " << nrm[2] << n;
@@ -598,9 +595,9 @@ bool IDTFExporter::doSave( const ObjModel* inmodel, const std::string& filename)
     for ( int mid : mids)
     {
         // Textures need to be output in TGA format for conversion to the IDTF intermediate format.
-        const std::vector<cv::Mat>& ambient = model->getMaterialAmbient(mid);
-        const std::vector<cv::Mat>& diffuse = model->getMaterialDiffuse(mid);
-        const std::vector<cv::Mat>& specular = model->getMaterialSpecular(mid);
+        const std::vector<cv::Mat>& ambient = model->materialAmbient(mid);
+        const std::vector<cv::Mat>& diffuse = model->materialDiffuse(mid);
+        const std::vector<cv::Mat>& specular = model->materialSpecular(mid);
         cv::Mat tx;
         if ( !diffuse.empty())
             tx = diffuse[0];
