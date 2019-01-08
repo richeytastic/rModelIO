@@ -46,8 +46,8 @@ bool U3DExporter::isAvailable()
 
 
 // public
-U3DExporter::U3DExporter( bool delOnDestroy)
-    : RModelIO::ObjModelExporter(), _delOnDestroy(delOnDestroy)
+U3DExporter::U3DExporter( bool delOnDestroy, bool m9)
+    : RModelIO::ObjModelExporter(), _delOnDestroy(delOnDestroy), _media9(m9)
 {
     if ( IDTFConverter.empty())
         IDTFConverter = "IDTFConverter";
@@ -100,11 +100,14 @@ bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 // protected
 bool U3DExporter::doSave( const ObjModel* model, const std::string& filename)
 {
+    static const std::string istr = "[INFO] RModelIO::U3DExporter::doSave: ";
+    static const std::string wstr = "[WARNING] RModelIO::U3DExporter::doSave: ";
     bool savedOkay = true;
 
     // First save to intermediate IDTF format.
-    IDTFExporter idtfExporter( _delOnDestroy);
+    IDTFExporter idtfExporter( _delOnDestroy, _media9);
     const std::string idtffile = boost::filesystem::path(filename).replace_extension("idtf").string();
+    std::cerr << istr << "Saving model to IDTF format" << std::endl;
     if ( !idtfExporter.save( model, idtffile))
     {   
         setErr( idtfExporter.err());
@@ -115,6 +118,11 @@ bool U3DExporter::doSave( const ObjModel* model, const std::string& filename)
         setErr("Unable to convert from IDTF format to U3D format!");
         savedOkay = false;
     }   // end if
+
+    if ( savedOkay)
+        std::cerr << istr << "Successfully converted IDTF to U3D" << std::endl;
+    else
+        std::cerr << wstr << "Failed to convert from IDTF to U3D!" << std::endl;
 
     return savedOkay;
 }   // end doSave

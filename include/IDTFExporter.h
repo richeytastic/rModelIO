@@ -34,14 +34,16 @@ public:
     // desired, set delFiles to delete from the filesystem the produced IDTF file and
     // any saved tga images (ObjModel material textures) upon any new call to save,
     // or upon destruction of this object. See RModelIO::U3DExporter.
-    explicit IDTFExporter( bool delFiles=false);
-    virtual ~IDTFExporter();
+    // Setting media9 true will transform coordinates as (a,b,c) --> (a,-c,b).
+    IDTFExporter( bool delFiles=false, bool media9=false);
+    ~IDTFExporter() override;
 
 protected:
     virtual bool doSave( const RFeatures::ObjModel*, const std::string& filename);
 
 private:
-    bool _delOnDtor;
+    const bool _delOnDtor;
+    const bool _media9;
     std::string _idtffile;
     std::vector<std::string> _tgafiles;
     void reset();

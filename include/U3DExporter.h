@@ -47,14 +47,15 @@ public:
     // U3D conversion produces an IDTF file and a tga texture.
     // Normally, both are destroyed immediately after saving the
     // U3D model. Set delOnDestroy to false to retain these files.
-    explicit U3DExporter( bool delOnDestroy=true);
-    virtual ~U3DExporter(){}
+    // Setting media9 true will transform coordinates as (a,b,c) --> (a,-c,b).
+    U3DExporter( bool delOnDestroy=true, bool media9=false);
 
 protected:
     virtual bool doSave( const RFeatures::ObjModel*, const std::string& filename);
 
 private:
     const bool _delOnDestroy;
+    const bool _media9;
 };  // end class
 
 }   // end namespace

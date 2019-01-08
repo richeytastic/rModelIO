@@ -29,24 +29,22 @@ using std::unordered_map;
 
 
 // public
-IDTFExporter::IDTFExporter( bool delOnDtor)
-    : RModelIO::ObjModelExporter(), _delOnDtor(delOnDtor)
+IDTFExporter::IDTFExporter( bool delOnDtor, bool m9)
+    : RModelIO::ObjModelExporter(), _delOnDtor(delOnDtor), _media9(m9)
 {
     addSupported( "idtf", "Intermediate Data Text Format");
 }   // end ctor
 
 
 // public
-IDTFExporter::~IDTFExporter()
-{
-    reset();
-}   // end dtor
+IDTFExporter::~IDTFExporter() { reset();}
 
 
 // Remove saved files.
 // private
 void IDTFExporter::reset()
 {
+    static const std::string istr = "[INFO] RModelIO::IDTFExporter::reset: ";
     if ( _delOnDtor)
     {
         using namespace boost::filesystem;
@@ -54,7 +52,7 @@ void IDTFExporter::reset()
         if ( exists( ffile) && is_regular_file( ffile))
         {
             remove( ffile);
-            std::cerr << "Removed " << ffile << std::endl;
+            std::cerr << istr << "Removed " << ffile << std::endl;
         }   // end if
 
         for ( const std::string& tgafile : _tgafiles)
@@ -63,7 +61,7 @@ void IDTFExporter::reset()
             if ( exists( ifile) && is_regular_file(ifile))
             {
                 remove( ifile);
-                std::cerr << "Removed " << ifile << " (IDTF conversion)" << std::endl;
+                std::cerr << istr << "Removed " << ifile << std::endl;
             }   // end if
         }   // end foreach
     }   // end _delOnDtor
@@ -144,8 +142,8 @@ void nodeModel( std::ostream& os, int meshID)
     os << "}" << n << n; // end NODE "MODEL"
 }   // end nodeModel
 
-/*
-void nodeLight( std::ostream& os, int lightID, const cv::Vec3f& pos)
+
+void nodeLight( std::ostream& os, int lightID, const cv::Vec3f& pos=cv::Vec3f(0,0,0))
 {
     TB t(1), tt(2), ttt(3), tttt(4);
     NL n(1);
@@ -163,7 +161,7 @@ void nodeLight( std::ostream& os, int lightID, const cv::Vec3f& pos)
     os << ttt << "}" << n;  // end PARENT_TM
     os << tt << "}" << n;  // end PARENT 0
     os << t << "}" << n;  // end PARENT_LIST
-    os << t << "RESOURCE_NAME \"PointLight" << lightID << "\"" << n;
+    os << t << "RESOURCE_NAME \"AmbientLight" << lightID << "\"" << n;
     os << "}" << n << n; // end NODE "MODEL"
 }   // end nodeLight
 
@@ -175,15 +173,14 @@ void resourceLight( std::ostream& os, int lightID)
     os << "RESOURCE_LIST \"LIGHT\" {" << n;
     os << t << "RESOURCE_COUNT 1" << n;
     os << t << "RESOURCE 0 {" << n;
-    os << tt << "RESOURCE_NAME \"PointLight" << lightID << "\"" << n;
-    os << tt << "LIGHT_TYPE \"POINT\"" << n;
+    os << tt << "RESOURCE_NAME \"AmbientLight" << lightID << "\"" << n;
+    os << tt << "LIGHT_TYPE \"AMBIENT\"" << n;
     os << tt << "LIGHT_COLOR 1.000000 1.000000 1.000000" << n;
     os << tt << "LIGHT_ATTENUATION 1.000000 0.000000 0.000000" << n;
     os << tt << "LIGHT_INTENSITY 1.000000" << n;
     os << t << "}" << n;
     os << "}" << n << n;
 }   // end resourceLight
-*/
 
 
 void resourceListShader( std::ostream& os, int nmesh, bool hasTX)
@@ -275,7 +272,7 @@ void resourceListTexture( std::ostream& os, const std::vector<std::pair<int, std
 struct ModelResource
 {
     // matID >= 0 if the model has materials.
-    ModelResource( const ObjModel* model, int matID) : _model(model)
+    ModelResource( const ObjModel* model, bool media9, int matID) : _model(model), _media9(media9)
     {
         // Get repeatable sequence of face IDs and the unique set of texture coords for the material
         const IntSet* fids;
@@ -338,6 +335,7 @@ struct ModelResource
 
 private:
     const ObjModel* _model;
+    const bool _media9;
     std::vector<int> _fidv;                 // Predictable seq. of face IDs
     std::vector<int> _vidv;                 // Predictable seq. of vertex IDs
     unordered_map<int,int> _vmap;    // ObjModel vertexID --> MODEL_POSITION_LIST index
@@ -457,11 +455,24 @@ private:
         NL n(1);
         os << ttt << "MODEL_POSITION_LIST {" << n;
         os << std::fixed << std::setprecision(6);
-        for ( int vid : _vidv)
+
+        if ( _media9)
         {
-            const cv::Vec3f& v = _model->vtx(vid);
-            os << tttt << v[0] << " " << v[1] << " " << v[2] << n;
-        }   // end foreach
+            for ( int vid : _vidv)
+            {
+                const cv::Vec3f& v = _model->vtx(vid);
+                os << tttt << v[0] << " " << -v[2] << " " << v[1] << n;
+            }   // end for
+        }   // end if
+        else
+        {
+            for ( int vid : _vidv)
+            {
+                const cv::Vec3f& v = _model->vtx(vid);
+                os << tttt << v[0] << " " << v[1] << " " << v[2] << n;
+            }   // end for
+        }   // end else
+
         os << ttt << "}" << n;  // end MODEL_POSITION_LIST
     }   // end writePositionList
 
@@ -499,7 +510,7 @@ private:
 
 
 // Write the model data in IDTF format. Only vertex, face, and texture mapping info are stored.
-std::string writeFile( const ObjModel* model, const std::string& filename, const std::vector<std::pair<int, std::string> >& mtf)
+std::string writeFile( const ObjModel* model, bool media9, const std::string& filename, const std::vector<std::pair<int, std::string> >& mtf)
 {
     const int nTX = (int)mtf.size();
     const int nmesh = std::max(1,nTX);
@@ -521,8 +532,8 @@ std::string writeFile( const ObjModel* model, const std::string& filename, const
         for ( int i = 0; i < nmesh; ++i)
             nodeModel( ofs, i);
 
-        //nodeLight( ofs, 1, cv::Vec3f(0,0,50));
-        //resourceLight( ofs, 1);
+        nodeLight( ofs, 1);
+        resourceLight( ofs, 1);
 
         // Multi material models are defined as separate model resources under a single parent node.
         // Model resource list (1 element)
@@ -537,7 +548,7 @@ std::string writeFile( const ObjModel* model, const std::string& filename, const
             ofs << tt << "MESH {" << n;
             // meshID is the material ID if there's at least one material on the object
             const int matID = nTX > 0 ? mtf[i].first : -1;
-            const ModelResource modelResource( model, matID);
+            const ModelResource modelResource( model, media9, matID);
             modelResource.writeMesh( ofs);
             ofs << tt << "}" << n;    // end MESH
             ofs << t << "}" << n;    // end RESOURCE
@@ -625,7 +636,7 @@ bool IDTFExporter::doSave( const ObjModel* inmodel, const std::string& filename)
     }   // end foreach
 
     _idtffile = filename;
-    const std::string errMsg = writeFile( model, filename, mtf);
+    const std::string errMsg = writeFile( model, _media9, filename, mtf);
     if ( !errMsg.empty())
         setErr( "Unable to write IDTF text file! : " + errMsg);
     return errMsg.empty();
