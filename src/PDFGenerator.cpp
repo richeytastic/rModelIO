@@ -20,6 +20,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/process.hpp>
+#include <boost/process/start_dir.hpp>
 #ifdef _WIN32
 #include <boost/process/windows.hpp>
 #endif
@@ -69,6 +70,9 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
     std::ostringstream errMsg;
     std::cerr << "[INFO] RModelIO::PDFGenerator: Attempting to generate PDF from " << texfile << std::endl;
 
+    // Get the parent path of the texfile to run pdflatex in.
+    const std::string ppath = tpath.parent_path().string();
+
     try
     {
         // Annoyingly, Windows MiKTeX installs itself with .../MiKTeX 2.9/... in the filepath!!!
@@ -82,12 +86,13 @@ bool PDFGenerator::operator()( const std::string& texfile, bool remtexfile)
         //if ( genpath.empty())
         //    genpath = boost::filesystem::path( pdflatex);
         //bp::child c(genpath, "-interaction", "batchmode", texfile, bp::std_out > stdout, bp::std_err > stderr);
-        std::string cmd = pdflatex + " -interaction batchmode -quiet -output-directory " + tpath.parent_path().string() + " " + texfile;
+        //std::string cmd = pdflatex + " -interaction batchmode -quiet -output-directory " + tpath.parent_path().string() + " " + texfile;
+        std::string cmd = pdflatex + " --shell-escape -interaction batchmode -output-directory " + ppath + " " + texfile;
         std::cerr << cmd << std::endl;
 #ifdef _WIN32
-        bp::child c( cmd, bp::windows::hide);
+        bp::child c( cmd, bp::windows::hide, bp::start_dir=ppath);
 #else
-        bp::child c( cmd);
+        bp::child c( cmd, bp::start_dir=ppath);
 #endif
         c.wait();
         success = c.exit_code() == 0;
