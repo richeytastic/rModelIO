@@ -31,11 +31,11 @@ class rModelIO_EXPORT AssetImporter : public ObjModelImporter
 public:
     // Set loadTextures true to read in the textures if available.
     // Set whether to fail or not if a model is imported containing at least one non-triangular polygon.
-    // If setReadFailOnNonTriangles(true) called before read() called, read will return NULL if any
+    // If setReadFailOnNonTriangles(true) called before read() called, read will return null if any
     // non-triangular polygons are found in the model file. Whether or not this function is called
     // prior to importing models, warnings about any non-triangular faces found will be printed to stderr.
-    // NB AssImp will try to triangulate all models on import.
-    AssetImporter( bool loadTextures=true, bool failOnNonTriangles=true);
+    // NB AssImp tries to triangulate all models on import.
+    AssetImporter( bool loadTextures=true, bool failOnNonTriangles=false);
     virtual ~AssetImporter(){}
 
     // Get the available formats as extension description pairs. These are not

@@ -274,7 +274,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
             if ( dupVerts < 0)
             {
                 std::cerr << "[ERROR] RModelIO::AssetImporter::createModel(): Invalid vertex in model file (NaN)!" << std::endl;
-                model = NULL;
+                model = nullptr;
                 break;
             }   // end if
 
@@ -287,14 +287,13 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
                     std::cerr << "[ERROR] RModelIO::AssetImporter::createModel()"
                               << " failed on discovery of " << nonTriangles
                               << " non-triangular polygons." << std::endl;
-                    model = NULL;
+                    model = nullptr;
                     break;
                 }   // end if
                 else
                 {
-                    std::cerr << "[WARNING] RModelIO::AssetImporter::createModel(): " << nonTriangles
-                        << " non-triangular faces found! Non-triangular faces are currently not supported."
-                        << " Ensure the model is made up of only triangular polygons before importing." << std::endl;
+                    std::cerr << "[WARNING] RModelIO::AssetImporter::createModel(): "
+                              << nonTriangles << " non-triangular faces found!" << std::endl;
                 }   // end if
             }   // end if
 
@@ -316,7 +315,9 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
                     setObjectTextureCoordinates( mesh, matId, *fidxs, model);
             }   // end if
             else
+            {
                 std::cerr << "  Mesh defines no texture coords - no material set!" << std::endl;
+            }   // end else
         }   // end if
         std::cerr << "  ===================================================" << std::endl;
     }   // end for
@@ -416,27 +417,30 @@ bool AssetImporter::enableFormat( const std::string& ext)
 ObjModel::Ptr AssetImporter::doLoad( const std::string& fname)
 {
     Assimp::Importer* importer = new Assimp::Importer;
+    //Assimp::Importer::SetPropertyInteger( AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINTS | aiPrimitiveType_LINES);
+    importer->SetPropertyInteger( AI_CONFIG_PP_SBP_REMOVE, 0x1 | 0x2);
+
     // Read the file into the common AssImp format.
     importer->ReadFile( fname, aiProcess_Triangulate
-                             | aiProcess_JoinIdenticalVertices
-                             | aiProcess_GenSmoothNormals  // Ignored if normals already present
-                             | aiProcess_RemoveRedundantMaterials
                              | aiProcess_SortByPType
-                             | aiProcess_PreTransformVertices
+                             | aiProcess_JoinIdenticalVertices
+                             | aiProcess_RemoveRedundantMaterials
                              | aiProcess_OptimizeMeshes
-                             | aiProcess_FixInfacingNormals
                              | aiProcess_FindDegenerates
-                             | aiProcess_FindInstances
                              | aiProcess_FindInvalidData
+                             //| aiProcess_OptimizeGraph
+                             //| aiProcess_FixInfacingNormals
+                             //| aiProcess_FindInstances
                              );
+
     ObjModel::Ptr model;
     if ( !importer->GetScene())
-        setErr( "AssetImporter::read(): Unable to read 3D scene into importer from " + fname);
+        setErr( "Unable to read 3D scene into importer from " + fname);
     else
     {
         model = createModel( importer, boost::filesystem::path( fname).parent_path(), _loadTextures, _failOnNonTriangles);
-        if (model == NULL)
-            setErr( "AssetImporter::read(): Unable to translate imported model into standard format (RFeatures::ObjModel)");
+        if (model == nullptr)
+            setErr( "Unable to translate imported model into standard format!");
         importer->FreeScene();
     }   // end else
 
