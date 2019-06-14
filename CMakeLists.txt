@@ -29,6 +29,7 @@ set( INCLUDE_FILES
     "${INCLUDE_DIR}/ObjModelImporter.h"
     #"${INCLUDE_DIR}/ObjModel2VCG.h"
     "${INCLUDE_DIR}/PDFGenerator.h"
+    "${INCLUDE_DIR}/PLYExporter.h"
     "${INCLUDE_DIR}/U3DExporter.h"
     #"${INCLUDE_DIR}/VCGTypes.h"
     #"${INCLUDE_DIR}/WRLExporter.h"
@@ -46,6 +47,7 @@ set( SRC_FILES
     ${SRC_DIR}/ObjModelImporter
     #${SRC_DIR}/ObjModel2VCG
     ${SRC_DIR}/PDFGenerator
+    ${SRC_DIR}/PLYExporter
     ${SRC_DIR}/U3DExporter
     #${SRC_DIR}/WRLExporter
     )

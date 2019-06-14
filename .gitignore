@@ -29,4 +29,6 @@
 
 # VIM backup files
 *~
+
 test/
+compile_commands.json

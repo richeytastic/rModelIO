@@ -1,5 +1,5 @@
 /************************************************************************
- * Copyright (C) 2017 Richard Palmer
+ * Copyright (C) 2019 Richard Palmer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -277,9 +277,9 @@ struct ModelResource
         // Get repeatable sequence of face IDs and the unique set of texture coords for the material
         const IntSet* fids;
         if ( matID < 0)
-            fids = &_model->getFaceIds();
+            fids = &_model->faces();
         else
-            fids = &_model->getMaterialFaceIds(matID);
+            fids = &_model->materialFaceIds(matID);
 
         _fidv.resize( fids->size());
         int k = 0;
@@ -287,9 +287,9 @@ struct ModelResource
         for ( int fid : *fids)
         {
             _fidv[k++] = fid;
-            if ( _model->getFaceMaterialId(fid) >= 0)
+            if ( _model->faceMaterialId(fid) >= 0)
             {
-                const int* uvids = _model->getFaceUVs(fid);
+                const int* uvids = _model->faceUVs(fid);
                 for ( int i = 0; i < 3; ++i)
                 {
                     // Only want to store unique UV offsets.
@@ -302,7 +302,7 @@ struct ModelResource
                 }   // end for
             }   // end if
 
-            const int* vidxs = _model->getFaceVertices(fid);
+            const int* vidxs = _model->fvidxs(fid);
             for ( int i = 0; i < 3; ++i)
             {
                 vid = vidxs[i];
@@ -312,12 +312,12 @@ struct ModelResource
                     _vidv.push_back(vid);
                 }   // end if
             }   // end for
-        }   // end foreach
+        }   // end for
     }   // end ctor
 
     void writeMesh( std::ostream& os) const
     {
-        const bool hasTX = _model->getNumMaterials() > 0;
+        const bool hasTX = _model->numMats() > 0;
         TB tt(2);
         NL n(1);
         writeHeader(os);
@@ -336,8 +336,8 @@ struct ModelResource
 private:
     const ObjModel* _model;
     const bool _media9;
-    std::vector<int> _fidv;                 // Predictable seq. of face IDs
-    std::vector<int> _vidv;                 // Predictable seq. of vertex IDs
+    std::vector<int> _fidv;          // Predictable seq. of face IDs
+    std::vector<int> _vidv;          // Predictable seq. of vertex IDs
     unordered_map<int,int> _vmap;    // ObjModel vertexID --> MODEL_POSITION_LIST index
     unordered_map<int, int> _uvmap;  // ObjModel uvID --> _uvlist index
     std::vector<const cv::Vec2f*> _uvlist;  // List of texture UVs to output in MODEL_TEXTURE_COORD_LIST
@@ -360,7 +360,7 @@ private:
 
     void writeShadingDescriptionList( std::ostream& os) const
     {
-        const bool hasTX = _model->getNumMaterials() > 0;
+        const bool hasTX = _model->numMats() > 0;
         TB ttt(3), tttt(4), ttttt(5), tttttt(6);
         NL n(1);
         os << ttt << "MODEL_SHADING_DESCRIPTION_LIST {" << n;
@@ -388,9 +388,9 @@ private:
         NL n(1);
         for ( int fid : _fidv)
         {
-            const int* vidxs = _model->getFaceVertices( fid);
+            const int* vidxs = _model->fvidxs( fid);
             os << tttt << _vmap.at(vidxs[0]) << " " << _vmap.at(vidxs[1]) << " " << _vmap.at(vidxs[2]) << n;
-        }   // end foreach
+        }   // end for
         os << ttt << "}" << n;
     }   // end writeFacePositionList
 
@@ -421,28 +421,28 @@ private:
 
     int getUVListIndex( int faceId, int uvOrderIndex/*[0,2]*/) const
     {
-        assert( _model->getFaceMaterialId(faceId) >= 0);
-        const int uvid = _model->getFaceUVs(faceId)[uvOrderIndex];
+        assert( _model->faceMaterialId(faceId) >= 0);
+        const int uvid = _model->faceUVs(faceId)[uvOrderIndex];
         return _uvmap.at( uvid);
     }   // end getUVListIndex
+
 
     // Write out texture coordinates if ObjModel has materials.
     void writeFaceTextureCoordList( std::ostream& os) const
     {
         TB ttt(3), tttt(4), ttttt(5);
         NL n(1);
-        int i = 0;
+        const int nf = int(_fidv.size());
         os << ttt << "MESH_FACE_TEXTURE_COORD_LIST {" << n;
-        for ( int fid : _fidv)
+        for ( int i = 0; i < nf; ++i)
         {
+            const int fid = _fidv[i];
             const int uv0 = getUVListIndex( fid, 0);
             const int uv1 = getUVListIndex( fid, 1);
             const int uv2 = getUVListIndex( fid, 2);
             os << tttt << "FACE " << i << " {" << n;
-            os << ttttt << "TEXTURE_LAYER 0 TEX_COORD: " << std::fixed << std::setprecision(6)
-                                                         << uv0 << " " << uv1 << " " << uv2 << n;
+            os << ttttt << "TEXTURE_LAYER 0 TEX_COORD: " << std::fixed << std::setprecision(6) << uv0 << " " << uv1 << " " << uv2 << n;
             os << tttt << "}" << n; // end FACE i
-            i++;
         }   // end foreach
         os << ttt << "}" << n;  // end MESH_FACE_TEXTURE_COORD_LIST
     }   // end writeFaceTextureCoordList
@@ -490,7 +490,7 @@ private:
             os << tttt << nrm[0] << " " << nrm[1] << " " << nrm[2] << n;
             os << tttt << nrm[0] << " " << nrm[1] << " " << nrm[2] << n;
             os << tttt << nrm[0] << " " << nrm[1] << " " << nrm[2] << n;
-        }   // end foreach
+        }   // end for
         os << ttt << "}" << n;  // end MODEL_NORMAL_LIST
     }   // end writeNormalList
 
@@ -584,44 +584,34 @@ bool IDTFExporter::doSave( const ObjModel* inmodel, const std::string& filename)
     reset();
     // Need to set all the texture map filenames (if present) and save out the textures.
     // Image files are saved adjacent to the model.
-    typedef boost::filesystem::path Path;
+    using Path = boost::filesystem::path;
     const Path mpath( filename);
     Path tpath = mpath.parent_path();  // Directory model is being saved in
     tpath /= mpath.stem();             // Use the stem of the save filename as the basis for the texture filenames
 
     std::vector<std::pair<int, std::string> > mtf;  // Associate the texture filenames with the material ID
-    const ObjModel* model = NULL;
+    const ObjModel* model = nullptr;
     ObjModel::Ptr nmodel;
-    if ( inmodel->getNumMaterials() <= 1)
+    if ( inmodel->numMats() <= 1)
         model = inmodel;
     else
     {
         std::cerr << "[STATUS] RModelIO::IDTFExporter::doSave: Multi-material model being copied to single material model for export" << std::endl;
-        nmodel = ObjModel::copy( inmodel, false);
+        nmodel = inmodel->deepCopy( true);
         nmodel->mergeMaterials();
         model = nmodel.get();
     }   // end else
 
-    const IntSet& mids = model->getMaterialIds();
+    const IntSet& mids = model->materialIds();
     for ( int mid : mids)
     {
-        // Textures need to be output in TGA format for conversion to the IDTF intermediate format.
-        const std::vector<cv::Mat>& ambient = model->materialAmbient(mid);
-        const std::vector<cv::Mat>& diffuse = model->materialDiffuse(mid);
-        const std::vector<cv::Mat>& specular = model->materialSpecular(mid);
-        cv::Mat tx;
-        if ( !diffuse.empty())
-            tx = diffuse[0];
-        else if ( !ambient.empty())
-            tx = ambient[0];
-        else if ( !specular.empty())
-            tx = specular[0];
-        else
+        // Texture needs to be output in TGA format for conversion to the IDTF intermediate format.
+        cv::Mat tx = model->texture(mid);
+        if ( tx.empty())
         {
             std::ostringstream eoss;
-            eoss << "[ERROR] RModelIO::IDTFExporter::doSave: Material " << mid << " contains no texture maps!";
+            eoss << "[ERROR] RModelIO::IDTFExporter::doSave: Material " << mid << " has no texture!";
             setErr(eoss.str());
-            assert( !diffuse.empty() || !ambient.empty() || !specular.empty());
             return false;
         }   // end else
 
@@ -632,7 +622,6 @@ bool IDTFExporter::doSave( const ObjModel* inmodel, const std::string& filename)
         if ( !RFeatures::saveTGA( tx, tgafname))
             return false;
         mtf.push_back( std::pair<int, std::string>( mid, tgafname));
-        //mtf.push_back( std::pair<int, std::string>( mid, Path(tgafname).filename().string()));  // Store just the filename without path
     }   // end foreach
 
     _idtffile = filename;

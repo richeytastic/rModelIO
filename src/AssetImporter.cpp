@@ -1,5 +1,5 @@
 /************************************************************************
- * Copyright (C) 2017 Richard Palmer
+ * Copyright (C) 2019 Richard Palmer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ using RFeatures::ObjModel;
 
 namespace {
 
-typedef unsigned int uint;
+using uint = unsigned int;
 
 
 cv::Mat loadImage( const boost::filesystem::path& ppath, const std::string& imgfile)
@@ -63,7 +63,7 @@ int loadImages( const boost::filesystem::path& ppath, const std::vector<std::str
         }   // end if
         else
             imgs.push_back(m);
-    }   // end foreach
+    }   // end for
     return (int)imgs.size();
 }   // end loadImages
 
@@ -73,12 +73,11 @@ struct MaterialTextures
 {
     // Set the texture filenames from the given material. Provide the directory
     // path to where the image files are located.
-    MaterialTextures( const aiMaterial* mat, const boost::filesystem::path& p)
+    MaterialTextures( const aiMaterial* mat, const boost::filesystem::path& p) : _ppath(p)
     {
         setTextureTypeFiles( mat, aiTextureType_AMBIENT, _ambient);
         setTextureTypeFiles( mat, aiTextureType_DIFFUSE, _diffuse);
         setTextureTypeFiles( mat, aiTextureType_SPECULAR, _specular);
-        _ppath = p;
     }   // end ctor
 
     // Load the ambient, diffuse, and specular texture maps returning
@@ -87,13 +86,9 @@ struct MaterialTextures
     int loadDiffuse() { return loadImages( _ppath, _diffuse, _dmats);}
     int loadSpecular() { return loadImages( _ppath, _specular, _smats);}
 
-    const std::vector<cv::Mat>& getAmbient() const { return _amats;}
-    const std::vector<cv::Mat>& getDiffuse() const { return _dmats;}
-    const std::vector<cv::Mat>& getSpecular() const { return _smats;}
-
-    const std::vector<std::string>& getAmbientFilenames() const { return _ambient;}
-    const std::vector<std::string>& getDiffuseFilenames() const { return _diffuse;}
-    const std::vector<std::string>& getSpecularFilenames() const { return _specular;}
+    const std::vector<cv::Mat>& ambient() const { return _amats;}
+    const std::vector<cv::Mat>& diffuse() const { return _dmats;}
+    const std::vector<cv::Mat>& specular() const { return _smats;}
 
 private:
     void setTextureTypeFiles( const aiMaterial* mat, aiTextureType txtype, std::vector<std::string>& imgfiles)
@@ -107,6 +102,8 @@ private:
         }   // end for
     }   // end setTextureTypeFiles
 
+    boost::filesystem::path _ppath; // Parent path for location of texture image files
+
     // The filenames for the texture maps
     std::vector<std::string> _ambient;
     std::vector<std::string> _diffuse;
@@ -116,30 +113,25 @@ private:
     std::vector<cv::Mat> _amats;
     std::vector<cv::Mat> _dmats;
     std::vector<cv::Mat> _smats;
-
-    boost::filesystem::path _ppath; // Parent path for location of texture image files
 };  // end struct
 
 
 int setObjectVertices( const aiMesh* mesh, std::vector<int>& vidxs, IntSet& vset, ObjModel::Ptr model)
 {
     const int n = (int)mesh->mNumVertices;
-    int dupCount = 0;
-    int vid;
-    vidxs.resize( n);
+    size_t dupCount = vset.size();
+    vidxs.resize(n);
     for ( int aiVtxId = 0; aiVtxId < n; ++aiVtxId)
     {
         const aiVector3D v = mesh->mVertices[aiVtxId];
-        vid = model->addVertex( v[0], v[1], v[2]);  // < 0 returned if can't be added (error)
+        int vid = model->addVertex( v[0], v[1], v[2]);  // < 0 returned if can't be added (error)
         if ( vid < 0)
             return vid;
 
         vidxs[aiVtxId] = vid;
-        if ( vset.count(vid) == 1) // Vertex already present in model
-            dupCount++;
         vset.insert(vid);
     }   // end for
-    return dupCount;
+    return static_cast<int>( vset.size() - dupCount);
 }   // end setObjectVertices
 
 
@@ -155,7 +147,7 @@ int setObjectFaces( const aiMesh* mesh, const std::vector<int>& vidxs, std::vect
     for ( int i = 0; i < nfaces; ++i)
     {
         const aiFace& aiface = aifaces[i];
-        if ( aiface.mNumIndices != 3)
+        if ( aiface.mNumIndices != 3)   // Not a triangle?
         {
             nonTriangles++;
             fids[i] = -1;
@@ -166,17 +158,27 @@ int setObjectFaces( const aiMesh* mesh, const std::vector<int>& vidxs, std::vect
         const int v0 = vidxs[aiface.mIndices[0]];
         const int v1 = vidxs[aiface.mIndices[1]];
         const int v2 = vidxs[aiface.mIndices[2]];
-        const int fid = model->addFace( v0, v1, v2);
 
-        if ( faceSet.count(fid))
+        // All three vertices must be unique to make a triangle, or it's not necessary (and is counted as a duplicate)
+        if (( v0 == v1) || ( v0 == v2) || ( v1 == v2))
         {
             fids[i] = -1;
             dupFaces++;
         }   // end if
         else
         {
-            fids[i] = fid;
-            faceSet.insert(fid);
+            const int fid = model->addFace( v0, v1, v2);
+
+            if ( faceSet.count(fid))
+            {
+                fids[i] = -1;
+                dupFaces++;
+            }   // end if
+            else
+            {
+                fids[i] = fid;
+                faceSet.insert(fid);
+            }   // end else
         }   // end else
     }   // end for
 
@@ -206,44 +208,28 @@ void setObjectTextureCoordinates( const aiMesh* mesh, int matId, const std::vect
 
 
 // Returns -1 if no textures loaded.
-int setObjectTextures( const boost::filesystem::path& ppath, const aiScene *scene, int meshIdx, ObjModel::Ptr model)
+int addMaterial( const boost::filesystem::path& ppath, const aiScene *scene, int meshIdx, ObjModel::Ptr model)
 {
     const aiMesh* mesh = scene->mMeshes[meshIdx];
     const aiMaterial* aimat = scene->mMaterials[mesh->mMaterialIndex];
 
     MaterialTextures mat( aimat, ppath);
-    const int ta = mat.loadAmbient();
-    const int td = mat.loadDiffuse();
-    const int ts = mat.loadSpecular();
-    if ( ta < 0 || td < 0 || ts < 0)
+    cv::Mat tx;
+    if ( mat.loadDiffuse())
+        tx = mat.diffuse()[0];
+    else if ( mat.loadAmbient())
+        tx = mat.ambient()[0];
+    else if ( mat.loadSpecular())
+        tx = mat.specular()[0];
+
+    if ( tx.empty())
     {
         std::cerr << "\tProblem loading image textures!" << std::endl;
         return -1;
     }   // if
 
-    int objMatId = -1;
-    // Only add a material for the object if at least one texture image is defined.
-    if ( ta > 0 || td > 0 || ts > 0)
-    {
-        objMatId = model->addMaterial();
-
-        for ( int i = 0; i < ta; ++i)
-            model->addMaterialAmbient( objMatId, mat.getAmbient()[i]);
-        for ( int i = 0; i < td; ++i)
-            model->addMaterialDiffuse( objMatId, mat.getDiffuse()[i]);
-        for ( int i = 0; i < ts; ++i)
-            model->addMaterialSpecular( objMatId, mat.getSpecular()[i]);
-
-        if ( ta > 0)
-            std::cerr << "\tSet " << ta << " ambient texture map" << (ta > 1 ? "s" : "") << std::endl;
-        if ( td > 0)
-            std::cerr << "\tSet " << td << " diffuse texture map" << (td > 1 ? "s" : "") << std::endl;
-        if ( ts > 0)
-            std::cerr << "\tSet " << ts << " specular texture map" << (ts > 1 ? "s" : "") << std::endl;
-    }   // end if
-
-    return objMatId;
-}   // end setObjectTextures
+    return model->addMaterial( tx);
+}   // end addMaterial
 
 
 ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::path& ppath, bool loadTextures, bool failOnNonTriangles)
@@ -251,7 +237,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
     const aiScene* scene = importer->GetScene();
     const uint nmaterials = scene->mNumMaterials;
     const uint nmeshes = scene->mNumMeshes;
-    std::cerr << "[INFO] RModelIO::AssetImporter::createModel(): Imported " << nmeshes << " mesh and " << nmaterials << " material parts\n";
+    std::cerr << "Imported " << nmeshes << " mesh and " << nmaterials << " material parts" << std::endl;
 
     ObjModel::Ptr model = RFeatures::ObjModel::create();
 
@@ -266,7 +252,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
         fidxs->clear();
         const aiMesh* mesh = scene->mMeshes[i];
 
-        std::cerr << "  ====================[ MESH " << std::setw(2) << i << " ]====================" << std::endl;
+        std::cerr << "=====================[ MESH " << std::setw(2) << i << " ]=====================" << std::endl;
         if ( mesh->HasFaces() && mesh->HasPositions())
         {
             // Returns the duplicate vertices for *just this mesh*
@@ -297,10 +283,8 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
                 }   // end if
             }   // end if
 
-            std::cerr << "  " << dupTriangles << " / " << mesh->mNumFaces
-                      << " triangles are ignored duplicates." << std::endl;
-            std::cerr << "  " << dupVerts << " / " << mesh->mNumVertices
-                      << " vertices are ignored duplicates." << std::endl;
+            std::cerr << dupTriangles << " / " << mesh->mNumFaces << " triangles are ignored duplicates." << std::endl;
+            std::cerr << dupVerts << " / " << mesh->mNumVertices << " vertices are ignored duplicates." << std::endl;
 
             if ( !loadTextures)
                 continue;
@@ -310,21 +294,19 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
             if ( mesh->HasTextureCoords(0))
             {
                 // New materials are added only if they define a texture.
-                const int matId = setObjectTextures( ppath, scene, i, model);
+                const int matId = addMaterial( ppath, scene, i, model);
                 if ( matId >= 0)
                     setObjectTextureCoordinates( mesh, matId, *fidxs, model);
             }   // end if
             else
-            {
-                std::cerr << "  Mesh defines no texture coords - no material set!" << std::endl;
-            }   // end else
+                std::cerr << "Mesh defines no texture coordinates." << std::endl;
         }   // end if
-        std::cerr << "  ===================================================" << std::endl;
+        std::cerr << "===================================================" << std::endl;
     }   // end for
 
     delete vidxs;
     delete fidxs;
-    std::cerr << "  Read " << vertSet.size() << " total vertices, with " << faceSet.size() << " total faces." << std::endl;
+    std::cerr << "Read " << vertSet.size() << " total vertices, with " << faceSet.size() << " total faces." << std::endl;
 
     return model;
 }   // end createModel
@@ -417,8 +399,10 @@ bool AssetImporter::enableFormat( const std::string& ext)
 ObjModel::Ptr AssetImporter::doLoad( const std::string& fname)
 {
     Assimp::Importer* importer = new Assimp::Importer;
-    //Assimp::Importer::SetPropertyInteger( AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINTS | aiPrimitiveType_LINES);
+    //importer->SetPropertyInteger( AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINTS | aiPrimitiveType_LINES);
     importer->SetPropertyInteger( AI_CONFIG_PP_SBP_REMOVE, 0x1 | 0x2);
+
+    std::cerr << "Attempting model import from '" << fname << "'..." << std::endl;
 
     // Read the file into the common AssImp format.
     importer->ReadFile( fname, aiProcess_Triangulate

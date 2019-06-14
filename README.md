@@ -5,7 +5,7 @@ to export 3D models to PDF (via suitable pdflatex processor).
 ## Prerequisites
 - [AssImp](https://github.com/assimp)
 
-    Tested with version 3.3.1 *NB* When configuring using CMake on Windows:
+    Requires version 4.1 *NB* When configuring using CMake on Windows:
     - *UNCHECK* `AddGTest_FOUND`
     - *UNCHECK* `ASSIMP_BUILD_TESTS`
     - *UNCHECK* `ASSIMP_BUILD_ASSIMP_VIEW` (references deprecated DirectX SDK)
@@ -26,4 +26,4 @@ to export 3D models to PDF (via suitable pdflatex processor).
 
 - [rFeatures](../../../rFeatures)
 
-- [Boost](http://www.boost.org/) 1.64+ required for boost::process. Needs compiler to have C++11 support.
+- [Boost](http://www.boost.org/) 1.64+ required for boost::process.

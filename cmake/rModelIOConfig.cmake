@@ -32,4 +32,4 @@ set( rModelIO_LIBRARIES     ${rModelIO_LIBRARIES}         CACHE FILE "The rModel
 
 # handle QUIETLY and REQUIRED args and set rModelIO_FOUND to TRUE if all listed variables are TRUE
 include( "${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake")
-find_package_handle_standard_args( rModelIO "Found:\t${rModelIO_LIBRARIES}" rModelIO_LIBRARIES rModelIO_INCLUDE_DIRS)
+find_package_handle_standard_args( rModelIO rModelIO_FOUND rModelIO_LIBRARIES rModelIO_INCLUDE_DIRS)

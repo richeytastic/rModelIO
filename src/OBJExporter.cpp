@@ -1,5 +1,5 @@
 /************************************************************************
- * Copyright (C) 2017 Richard Palmer
+ * Copyright (C) 2019 Richard Palmer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,15 +38,6 @@ std::string getMaterialName( const std::string& fname, int midx)
 }   // end getMaterialName
 
 
-bool equal( const cv::Mat a, const cv::Mat b)
-{
-    if ( a.size() != b.size() || a.type() != b.type())
-        return false;
-    cv::Mat diff = a - b;
-    return cv::countNonZero(diff.reshape(1)) == 0;
-}   // end equal
-
-
 // Write out the .mtl file - returning any error string.
 std::string writeMaterialFile( const ObjModel* model, const std::string& fname)
 {
@@ -60,58 +51,22 @@ std::string writeMaterialFile( const ObjModel* model, const std::string& fname)
         ofs << std::endl;
 
         int pmid = 0;   // Will be set to the 'pseudo' material ID in the event nfaces < total model faces.
-        size_t nfaces = 0;
-        const IntSet& mids = model->getMaterialIds();
+        int nfaces = 0;
+        const IntSet& mids = model->materialIds();
         for ( int mid : mids)
         {
-            nfaces += model->getMaterialFaceIds(mid).size();
+            nfaces += int(model->materialFaceIds(mid).size());
             const std::string matname = getMaterialName( fname, mid);
             ofs << "newmtl " << matname << std::endl;
             ofs << "illum 1" << std::endl;
-
-            const std::vector<cv::Mat>& ambient = model->materialAmbient(mid);
-            const std::vector<cv::Mat>& diffuse = model->materialDiffuse(mid);
-            const std::vector<cv::Mat>& specular = model->materialSpecular(mid);
-
-            int i = 0;
-            cv::Mat tx;
-            if ( !diffuse.empty())
+            const cv::Mat tx = model->texture(mid);
+            if ( !tx.empty())
             {
                 std::ostringstream oss;
-                oss << matname << i << ".png";
+                oss << matname << ".png";
                 ofs << "map_Kd " << oss.str() << std::endl;
                 const std::string imgfile = (ppath / oss.str()).string();
-                cv::imwrite( imgfile, diffuse[0]);
-                tx = diffuse[0];
-            }   // end if
-
-            if ( !ambient.empty())
-            {
-                ofs << "map_Ka ";
-                if ( !equal( ambient[0], tx))
-                {
-                    i++;
-                    std::ostringstream oss;
-                    oss << matname << i << ".png";
-                    const std::string imgfile = (ppath / oss.str()).string();
-                    cv::imwrite( imgfile, ambient[0]);
-                    tx = ambient[0];
-                }   // end if
-                ofs << matname << i << ".png" << std::endl;
-            }   // end if
-
-            if ( !specular.empty())
-            {
-                ofs << "map_Ks ";
-                if ( !equal( specular[0], tx))
-                {
-                    i++;
-                    std::ostringstream oss;
-                    oss << matname << i << ".png";
-                    const std::string imgfile = (ppath / oss.str()).string();
-                    cv::imwrite( imgfile, specular[0]);
-                }   // end if
-                ofs << matname << i << ".png" << std::endl;
+                cv::imwrite( imgfile, tx);
             }   // end if
 
             ofs << std::endl;
@@ -119,8 +74,8 @@ std::string writeMaterialFile( const ObjModel* model, const std::string& fname)
         }   // end foreach
 
         // Do we need an extra 'pseudo' material?
-        assert( nfaces <= model->getNumFaces());
-        if ( nfaces < model->getNumFaces())
+        assert( nfaces <= model->numPolys());
+        if ( nfaces < model->numPolys())
         {
             ofs << "newmtl " << getMaterialName( fname, pmid) << std::endl;
             ofs << "illum 1" << std::endl;
@@ -137,49 +92,48 @@ std::string writeMaterialFile( const ObjModel* model, const std::string& fname)
 }   // end writeMaterialFile
 
 
-typedef std::unordered_map<int,int> IntIntMap;
+using IIMap = std::unordered_map<int,int>;
 
-int writeVertices( std::ostream& os, const ObjModel* model, IntIntMap& obj2FileVids)
+void writeVertices( std::ostream& os, const ObjModel* model, IIMap& vvmap)
 {
     int i = 0;
-    const IntSet& vidxs = model->getVertexIds();
-    for ( int vidx : vidxs)
+    const IntSet& vids = model->vtxIds();
+    for ( int vid : vids)
     {
-        obj2FileVids[vidx] = ++i;   // Pre-increment (.obj vertex list starts at 1)
-        const cv::Vec3f& v = model->vtx(vidx);
+        vvmap[vid] = ++i;   // Preincrement because vertex indices start at one for OBJ
+        const cv::Vec3f& v = model->vtx(vid);
         os << "v\t" << v[0] << " " << v[1] << " " << v[2] << std::endl;
-    }   // end foreach
-    return i;
+    }   // end for
 }   // end writeVertices
 
 
-void writeMaterialUVs( std::ostream& os, const ObjModel* model, int midx, IntIntMap& uvmap)
+void writeMaterialUVs( std::ostream& os, const ObjModel* model, int midx, IIMap& uvmap)
 {
     int i = 0;
-    const IntSet& uvids = model->getUVs( midx);
+    const IntSet& uvids = model->uvs( midx);
     for ( int uvid : uvids)
     {
-        uvmap[uvid] = ++i;
+        uvmap[uvid] = ++i;  // Pre-increment (.obj lists start at 1)
         const cv::Vec2f& uv = model->uv(midx, uvid);
         os << "vt\t" << uv[0] << " " << uv[1] << " " << 0.0 << std::endl;
-    }   // end foreach
+    }   // end for
     os << std::endl;
 }   // end writeMaterialUVs
 
 
-void writeMaterialFaces( std::ostream& os, const ObjModel* model, int midx,
-                         const IntIntMap& vmap, const IntIntMap& uvmap, IntSet& rfids)
+void writeMaterialFaces( std::ostream& os, const ObjModel* model, int midx, const IIMap& vvmap, const IIMap& uvmap, IntSet& rfids)
 {
-    const IntSet& mfids = model->getMaterialFaceIds( midx);
+    // Vertex indices are +1 because .obj vertex list starts at 1.
+    const IntSet& mfids = model->materialFaceIds( midx);
     for ( int fid : mfids)
     {
         rfids.erase(fid);
-        const int* vidxs = model->getFaceVertices(fid);
-        const int* fuvs = model->getFaceUVs(fid);
-        os << "f\t" << vmap.at(vidxs[0]) << "/" << uvmap.at(fuvs[0]) << " "
-                    << vmap.at(vidxs[1]) << "/" << uvmap.at(fuvs[1]) << " "
-                    << vmap.at(vidxs[2]) << "/" << uvmap.at(fuvs[2]) << std::endl;
-    }   // end foreach
+        const int* vidxs = model->fvidxs(fid);
+        const int* fuvs = model->faceUVs(fid);
+        os << "f\t" << vvmap.at(vidxs[0]) << "/" << uvmap.at(fuvs[0]) << " "
+                    << vvmap.at(vidxs[1]) << "/" << uvmap.at(fuvs[1]) << " "
+                    << vvmap.at(vidxs[2]) << "/" << uvmap.at(fuvs[2]) << std::endl;
+    }   // end for
 }   // end writeMaterialFaces
 
 }   // end namespace
@@ -205,27 +159,32 @@ bool OBJExporter::doSave( const ObjModel* model, const std::string& fname)
         ofs << "mtllib " << boost::filesystem::path(matfile).filename().string() << std::endl;
         ofs << std::endl;
 
-        ofs << "# Model has " << model->getNumVertices() << " vertices" << std::endl;
-        IntIntMap vmap;
-        writeVertices( ofs, model, vmap);
+        ofs << "# Model has " << model->numVtxs() << " vertices" << std::endl;
+
+        IIMap vvmap;
+        writeVertices( ofs, model, vvmap);
 
         ofs << std::endl;
 
+        IntSet remfids; // Will hold face IDs not associated with a material
+        const IntSet& fids = model->faces();
+        for ( int fid : fids)
+            remfids.insert(fid);
+
         int pmid = 0;   // Pseudo material ID if required.
-        IntSet remfids = model->getFaceIds();   // Will hold face IDs not associated with a material
-        const IntSet& mids = model->getMaterialIds();
+        const IntSet& mids = model->materialIds();
         for ( int mid : mids)
         {
             const std::string mname = getMaterialName( fname, mid);
-            ofs << "# " << model->getUVs(mid).size() << " UV coordinates on material '" << mname << "'" << std::endl;
-            IntIntMap uvmap;
+            ofs << "# " << model->uvs(mid).size() << " UV coordinates on material '" << mname << "'" << std::endl;
+            IIMap uvmap;
             writeMaterialUVs( ofs, model, mid, uvmap);
             ofs << std::endl;
-            ofs << "# Mesh '" << mname << "' with " << model->getMaterialFaceIds(mid).size() << " faces" << std::endl;
+            ofs << "# Mesh '" << mname << "' with " << model->materialFaceIds(mid).size() << " faces" << std::endl;
             ofs << "usemtl " << mname << std::endl;
-            writeMaterialFaces( ofs, model, mid, vmap, uvmap, remfids);
+            writeMaterialFaces( ofs, model, mid, vvmap, uvmap, remfids);
             pmid = mid+1;
-        }   // end foreach
+        }   // end for
 
         ofs << std::endl;
         // Not all faces accounted for in materials, so write out the remainder without texture coordinates.
@@ -236,9 +195,9 @@ bool OBJExporter::doSave( const ObjModel* model, const std::string& fname)
             ofs << "usemtl " << mname << std::endl;
             for ( int fid : remfids)
             {
-                const int* vidxs = model->getFaceVertices(fid);
-                ofs << "f\t" << vmap.at(vidxs[0]) << " " << vmap.at(vidxs[1]) << " " << vmap.at(vidxs[2]) << std::endl;
-            }   // end foreach
+                const int* vidxs = model->fvidxs(fid);
+                ofs << "f\t" << vvmap.at(vidxs[0]) << " " << vvmap.at(vidxs[1]) << " " << vvmap.at(vidxs[2]) << std::endl;
+            }   // end for
         }   // end if
 
         ofs << std::endl;

@@ -1,5 +1,5 @@
 /************************************************************************
- * Copyright (C) 2017 Richard Palmer
+ * Copyright (C) 2019 Richard Palmer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,20 +16,20 @@
  ************************************************************************/
 
 /**
- * Export model to Wavefront OBJ format.
+ * Export model to PLY format.
  */
 
-#ifndef RMODELIO_OBJ_EXPORTER_H
-#define RMODELIO_OBJ_EXPORTER_H
+#ifndef RMODELIO_PLY_EXPORTER_H
+#define RMODELIO_PLY_EXPORTER_H
 
 #include "ObjModelExporter.h"
 
 namespace RModelIO {
 
-class rModelIO_EXPORT OBJExporter : public ObjModelExporter
+class rModelIO_EXPORT PLYExporter : public ObjModelExporter
 {
 public:
-    OBJExporter();
+    PLYExporter();
 
 protected:
     bool doSave( const RFeatures::ObjModel*, const std::string& filename) override;
