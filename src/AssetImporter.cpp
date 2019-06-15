@@ -116,31 +116,12 @@ private:
 };  // end struct
 
 
-int setObjectVertices( const aiMesh* mesh, std::vector<int>& vidxs, IntSet& vset, ObjModel::Ptr model)
-{
-    const int n = (int)mesh->mNumVertices;
-    size_t dupCount = vset.size();
-    vidxs.resize(n);
-    for ( int aiVtxId = 0; aiVtxId < n; ++aiVtxId)
-    {
-        const aiVector3D v = mesh->mVertices[aiVtxId];
-        int vid = model->addVertex( v[0], v[1], v[2]);  // < 0 returned if can't be added (error)
-        if ( vid < 0)
-            return vid;
-
-        vidxs[aiVtxId] = vid;
-        vset.insert(vid);
-    }   // end for
-    return static_cast<int>( vset.size() - dupCount);
-}   // end setObjectVertices
-
-
-int setObjectFaces( const aiMesh* mesh, const std::vector<int>& vidxs, std::vector<int>& fids,
-                                        int& nonTriangles, IntSet& faceSet, ObjModel::Ptr model)
+int setObjectFaces( const aiMesh* mesh, std::vector<int>& fids, int& nonTriangles, IntSet& faceSet, ObjModel::Ptr model)
 {
     const int nfaces = (int)mesh->mNumFaces;
     fids.resize( nfaces);
 
+    int v0, v1, v2;
     int dupFaces = 0; // Count duplicate faces not added
     nonTriangles = 0; // Count number of polygons that aren't triangles
     const aiFace* aifaces = mesh->mFaces;
@@ -154,32 +135,68 @@ int setObjectFaces( const aiMesh* mesh, const std::vector<int>& vidxs, std::vect
             continue;
         }   // end if
 
-        // Map the aiMesh face vertex indices to the vertex indices set in the model
-        const int v0 = vidxs[aiface.mIndices[0]];
-        const int v1 = vidxs[aiface.mIndices[1]];
-        const int v2 = vidxs[aiface.mIndices[2]];
+        const aiVector3D& av0 = mesh->mVertices[aiface.mIndices[0]];
+        const aiVector3D& av1 = mesh->mVertices[aiface.mIndices[1]];
+        const aiVector3D& av2 = mesh->mVertices[aiface.mIndices[2]];
 
-        // All three vertices must be unique to make a triangle, or it's not necessary (and is counted as a duplicate)
-        if (( v0 == v1) || ( v0 == v2) || ( v1 == v2))
+#ifndef NDEBUG
+        // All three vertices must be unique to make a triangle, or it's not necessary (and is counted as a duplicate).
+        // This shouldn't ever happen if AssImp is doing its job properly.
+        if ( av0 == av1 || av1 == av2 || av2 == av0)
+        {
+            std::cerr << "[ERROR] RModelIO::AssetImporter::setObjectFaces(): Triple of aiVector3D vertices are not all different!" << std::endl;
+            fids[i] = -1;
+            dupFaces++;
+            continue;
+        }   // end if
+
+        v0 = model->addVertex( av0[0], av0[1], av0[2]);  // < 0 returned if can't be added (error)
+        if ( v0 < 0)
+        {
+            std::cerr << "[ERROR] RModelIO::AssetImporter::setObjectFaces(): Unable to add 1st vertex " << cv::Vec3f( av0[0], av0[1], av0[2]) << std::endl;
+            fids[i] = -1;
+            continue;
+        }   // end if
+
+        v1 = model->addVertex( av1[0], av1[1], av1[2]);  // < 0 returned if can't be added (error)
+        if ( v1 < 0)
+        {
+            std::cerr << "[ERROR] RModelIO::AssetImporter::setObjectFaces(): Unable to add 2nd vertex " << cv::Vec3f( av1[0], av1[1], av1[2]) << std::endl;
+            fids[i] = -1;
+            continue;
+        }   // end if
+
+        v2 = model->addVertex( av2[0], av2[1], av2[2]);  // < 0 returned if can't be added (error)
+        if ( v2 < 0)
+        {
+            std::cerr << "[ERROR] RModelIO::AssetImporter::setObjectFaces(): Unable to add 3rd vertex " << cv::Vec3f( av2[0], av2[1], av2[2]) << std::endl;
+            fids[i] = -1;
+            continue;
+        }   // end if
+
+        // Again, since the float values are copied straight over, it should never be the case that the IDs map to the same value.
+        if ((v0 == v1) || (v0 == v2) || (v1 == v2))
+        {
+            std::cerr << "[ERROR] RModelIO::AssetImporter::setObjectFaces(): Triple of vertex IDs are not all different!" << std::endl;
+            fids[i] = -1;
+            continue;
+        }   // end if
+#else
+        v0 = model->addVertex( av0[0], av0[1], av0[2]);
+        v1 = model->addVertex( av1[0], av1[1], av1[2]);
+        v2 = model->addVertex( av2[0], av2[1], av2[2]);
+#endif
+
+        const int fid = model->addFace( v0, v1, v2);
+        if ( faceSet.count(fid))
         {
             fids[i] = -1;
             dupFaces++;
+            continue;
         }   // end if
-        else
-        {
-            const int fid = model->addFace( v0, v1, v2);
 
-            if ( faceSet.count(fid))
-            {
-                fids[i] = -1;
-                dupFaces++;
-            }   // end if
-            else
-            {
-                fids[i] = fid;
-                faceSet.insert(fid);
-            }   // end else
-        }   // end else
+        fids[i] = fid;
+        faceSet.insert(fid);
     }   // end for
 
     return dupFaces;
@@ -241,31 +258,20 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
 
     ObjModel::Ptr model = RFeatures::ObjModel::create();
 
-    std::vector<int>* vidxs = new std::vector<int>;
     std::vector<int>* fidxs = new std::vector<int>;
     IntSet vertSet;
     IntSet faceSet;
 
     for ( uint i = 0; i < nmeshes; ++i)
     {
-        vidxs->clear();
         fidxs->clear();
         const aiMesh* mesh = scene->mMeshes[i];
 
         std::cerr << "=====================[ MESH " << std::setw(2) << i << " ]=====================" << std::endl;
         if ( mesh->HasFaces() && mesh->HasPositions())
         {
-            // Returns the duplicate vertices for *just this mesh*
-            const int dupVerts = setObjectVertices( mesh, *vidxs, vertSet, model);
-            if ( dupVerts < 0)
-            {
-                std::cerr << "[ERROR] RModelIO::AssetImporter::createModel(): Invalid vertex in model file (NaN)!" << std::endl;
-                model = nullptr;
-                break;
-            }   // end if
-
             int nonTriangles = 0;
-            const int dupTriangles = setObjectFaces( mesh, *vidxs, *fidxs, nonTriangles, faceSet, model);
+            const int dupTriangles = setObjectFaces( mesh, *fidxs, nonTriangles, faceSet, model);
             if ( nonTriangles > 0)
             {
                 if ( failOnNonTriangles)
@@ -284,7 +290,6 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
             }   // end if
 
             std::cerr << dupTriangles << " / " << mesh->mNumFaces << " triangles are ignored duplicates." << std::endl;
-            std::cerr << dupVerts << " / " << mesh->mNumVertices << " vertices are ignored duplicates." << std::endl;
 
             if ( !loadTextures)
                 continue;
@@ -304,7 +309,6 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
         std::cerr << "===================================================" << std::endl;
     }   // end for
 
-    delete vidxs;
     delete fidxs;
     std::cerr << "Read " << vertSet.size() << " total vertices, with " << faceSet.size() << " total faces." << std::endl;
 
@@ -399,10 +403,7 @@ bool AssetImporter::enableFormat( const std::string& ext)
 ObjModel::Ptr AssetImporter::doLoad( const std::string& fname)
 {
     Assimp::Importer* importer = new Assimp::Importer;
-    //importer->SetPropertyInteger( AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINTS | aiPrimitiveType_LINES);
-    importer->SetPropertyInteger( AI_CONFIG_PP_SBP_REMOVE, 0x1 | 0x2);
-
-    std::cerr << "Attempting model import from '" << fname << "'..." << std::endl;
+    importer->SetPropertyInteger( AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINT | aiPrimitiveType_LINE);
 
     // Read the file into the common AssImp format.
     importer->ReadFile( fname, aiProcess_Triangulate
