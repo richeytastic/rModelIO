@@ -39,7 +39,7 @@ public:
     ~IDTFExporter() override;
 
 protected:
-    virtual bool doSave( const RFeatures::ObjModel*, const std::string& filename);
+    virtual bool doSave( const RFeatures::ObjModel&, const std::string& filename);
 
 private:
     const bool _delOnDtor;

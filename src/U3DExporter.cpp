@@ -98,7 +98,7 @@ bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 
 
 // protected
-bool U3DExporter::doSave( const ObjModel* model, const std::string& filename)
+bool U3DExporter::doSave( const ObjModel& model, const std::string& filename)
 {
     static const std::string istr = "[INFO] RModelIO::U3DExporter::doSave: ";
     static const std::string wstr = "[WARNING] RModelIO::U3DExporter::doSave: ";

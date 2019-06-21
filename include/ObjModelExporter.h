@@ -35,10 +35,10 @@ public:
     virtual ~ObjModelExporter(){}
 
     // Returns true on success. The filename extension must be supported.
-    bool save( const RFeatures::ObjModel*, const std::string& filename);
+    bool save( const RFeatures::ObjModel&, const std::string& filename);
 
 protected:
-    virtual bool doSave( const RFeatures::ObjModel*, const std::string& filename) = 0;
+    virtual bool doSave( const RFeatures::ObjModel&, const std::string& filename) = 0;
 };  // end class
 
 }   // end namespace

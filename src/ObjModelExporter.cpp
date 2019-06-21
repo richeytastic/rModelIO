@@ -27,7 +27,7 @@ ObjModelExporter::ObjModelExporter() : rlib::IOFormats()
 
 
 // public
-bool ObjModelExporter::save( const ObjModel* model, const std::string& fname)
+bool ObjModelExporter::save( const ObjModel& model, const std::string& fname)
 {
     if ( fname.empty())
     {

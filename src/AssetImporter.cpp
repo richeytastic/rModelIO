@@ -116,8 +116,9 @@ private:
 };  // end struct
 
 
-int setObjectFaces( const aiMesh* mesh, std::vector<int>& fids, int& nonTriangles, IntSet& faceSet, ObjModel::Ptr model)
+int setObjectFaces( const aiMesh* mesh, std::vector<int>& fids, int& nonTriangles, ObjModel::Ptr model)
 {
+    IntSet faceSet;
     const int nfaces = (int)mesh->mNumFaces;
     fids.resize( nfaces);
 
@@ -259,8 +260,6 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
     ObjModel::Ptr model = RFeatures::ObjModel::create();
 
     std::vector<int>* fidxs = new std::vector<int>;
-    IntSet vertSet;
-    IntSet faceSet;
 
     for ( uint i = 0; i < nmeshes; ++i)
     {
@@ -271,7 +270,7 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
         if ( mesh->HasFaces() && mesh->HasPositions())
         {
             int nonTriangles = 0;
-            const int dupTriangles = setObjectFaces( mesh, *fidxs, nonTriangles, faceSet, model);
+            const int dupTriangles = setObjectFaces( mesh, *fidxs, nonTriangles, model);
             if ( nonTriangles > 0)
             {
                 if ( failOnNonTriangles)
@@ -310,8 +309,6 @@ ObjModel::Ptr createModel( Assimp::Importer* importer, const boost::filesystem::
     }   // end for
 
     delete fidxs;
-    std::cerr << "Read " << vertSet.size() << " total vertices, with " << faceSet.size() << " total faces." << std::endl;
-
     return model;
 }   // end createModel
 

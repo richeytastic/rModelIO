@@ -140,10 +140,10 @@ void writeMaterialFaces( std::ostream& os, const ObjModel* model, int midx, cons
 
 
 // protected
-bool OBJExporter::doSave( const ObjModel* model, const std::string& fname)
+bool OBJExporter::doSave( const ObjModel& model, const std::string& fname)
 {
     const std::string matfile = boost::filesystem::path(fname).replace_extension("mtl").string();
-    std::string err = writeMaterialFile( model, matfile);
+    std::string err = writeMaterialFile( &model, matfile);
     if ( !err.empty())
     {
         setErr( "Unable to write OBJ .mtl file! " + err);
@@ -159,30 +159,30 @@ bool OBJExporter::doSave( const ObjModel* model, const std::string& fname)
         ofs << "mtllib " << boost::filesystem::path(matfile).filename().string() << std::endl;
         ofs << std::endl;
 
-        ofs << "# Model has " << model->numVtxs() << " vertices" << std::endl;
+        ofs << "# Model has " << model.numVtxs() << " vertices" << std::endl;
 
         IIMap vvmap;
-        writeVertices( ofs, model, vvmap);
+        writeVertices( ofs, &model, vvmap);
 
         ofs << std::endl;
 
         IntSet remfids; // Will hold face IDs not associated with a material
-        const IntSet& fids = model->faces();
+        const IntSet& fids = model.faces();
         for ( int fid : fids)
             remfids.insert(fid);
 
         int pmid = 0;   // Pseudo material ID if required.
-        const IntSet& mids = model->materialIds();
+        const IntSet& mids = model.materialIds();
         for ( int mid : mids)
         {
             const std::string mname = getMaterialName( fname, mid);
-            ofs << "# " << model->uvs(mid).size() << " UV coordinates on material '" << mname << "'" << std::endl;
+            ofs << "# " << model.uvs(mid).size() << " UV coordinates on material '" << mname << "'" << std::endl;
             IIMap uvmap;
-            writeMaterialUVs( ofs, model, mid, uvmap);
+            writeMaterialUVs( ofs, &model, mid, uvmap);
             ofs << std::endl;
-            ofs << "# Mesh '" << mname << "' with " << model->materialFaceIds(mid).size() << " faces" << std::endl;
+            ofs << "# Mesh '" << mname << "' with " << model.materialFaceIds(mid).size() << " faces" << std::endl;
             ofs << "usemtl " << mname << std::endl;
-            writeMaterialFaces( ofs, model, mid, vvmap, uvmap, remfids);
+            writeMaterialFaces( ofs, &model, mid, vvmap, uvmap, remfids);
             pmid = mid+1;
         }   // end for
 
@@ -195,7 +195,7 @@ bool OBJExporter::doSave( const ObjModel* model, const std::string& fname)
             ofs << "usemtl " << mname << std::endl;
             for ( int fid : remfids)
             {
-                const int* vidxs = model->fvidxs(fid);
+                const int* vidxs = model.fvidxs(fid);
                 ofs << "f\t" << vvmap.at(vidxs[0]) << " " << vvmap.at(vidxs[1]) << " " << vvmap.at(vidxs[2]) << std::endl;
             }   // end for
         }   // end if

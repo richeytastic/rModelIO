@@ -33,7 +33,7 @@ typedef RFeatures::CameraParams Cam;
 
 
 // public
-LaTeXU3DInserter::Ptr LaTeXU3DInserter::create( const ObjModel* model,
+LaTeXU3DInserter::Ptr LaTeXU3DInserter::create( const ObjModel& model,
                                                 const std::string& sdirectory,
                                                 float fw, float fh,
                                                 const Cam& cam,
@@ -41,7 +41,7 @@ LaTeXU3DInserter::Ptr LaTeXU3DInserter::create( const ObjModel* model,
                                                 bool actOnOpen, bool remgen)
 {
     Ptr minserter(  new LaTeXU3DInserter( fw, fh, cam, figCap, figLab, actOnOpen, remgen), [](LaTeXU3DInserter* d){ delete d;});
-    if ( !minserter->setModel(model, sdirectory))
+    if ( !minserter->setModel( model, sdirectory))
         minserter = nullptr;
     return minserter;
 }   // end create
@@ -89,7 +89,7 @@ bool LaTeXU3DInserter::setModel( const std::string& u3dfile)
 
 
 // private
-bool LaTeXU3DInserter::setModel( const ObjModel* model, const std::string& sdir)
+bool LaTeXU3DInserter::setModel( const ObjModel& model, const std::string& sdir)
 {
     const std::string u3dtmp = sdir + "/" + boost::filesystem::unique_path().replace_extension(".u3d").string();
 

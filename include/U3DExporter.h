@@ -51,7 +51,7 @@ public:
     U3DExporter( bool delOnDestroy=true, bool media9=false);
 
 protected:
-    virtual bool doSave( const RFeatures::ObjModel*, const std::string& filename);
+    virtual bool doSave( const RFeatures::ObjModel&, const std::string& filename);
 
 private:
     const bool _delOnDestroy;

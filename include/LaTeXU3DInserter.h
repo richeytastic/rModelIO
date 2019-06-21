@@ -43,7 +43,7 @@ public:
     // New figure inserter. Returns NULL if unable to convert given model to U3D.
     // Don't try to delete the returned object - will be deleted automatically
     // when the PDFGenerator's destructor runs.
-    static Ptr create( const RFeatures::ObjModel*,
+    static Ptr create( const RFeatures::ObjModel&,
                        const std::string& u3ddir,           // The directory in which the temporary U3D model is exported
                        float figWidthMM, float figHeightMM, // Width and height of figure in mm
                        const RFeatures::CameraParams& cam,  // ONLY pos-focus distance and FoV used - see above!
@@ -80,7 +80,7 @@ private:
     LaTeXU3DInserter( float figWidthMM, float figHeightMM, const RFeatures::CameraParams& cam,
                       const std::string& figCaption="", const std::string& figLabel="",
                       bool activate3DContentOnOpen=true, bool removeOnDestroy=true);
-    bool setModel( const RFeatures::ObjModel*, const std::string&);
+    bool setModel( const RFeatures::ObjModel&, const std::string&);
     virtual ~LaTeXU3DInserter();
 
     LaTeXU3DInserter( const LaTeXU3DInserter&) = delete;

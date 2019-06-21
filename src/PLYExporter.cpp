@@ -30,14 +30,14 @@ PLYExporter::PLYExporter() : RModelIO::ObjModelExporter()
 
 
 // protected
-bool PLYExporter::doSave( const ObjModel* m, const std::string& fname)
+bool PLYExporter::doSave( const ObjModel& m, const std::string& fname)
 {
     std::string err;
     std::ofstream ofs;
     try
     {
-        const int nv = m->numVtxs();
-        const int np = m->numPolys();
+        const int nv = m.numVtxs();
+        const int np = m.numPolys();
 
         ofs.open( fname.c_str(), std::ios::out);
         ofs << "ply" << std::endl;
@@ -51,19 +51,19 @@ bool PLYExporter::doSave( const ObjModel* m, const std::string& fname)
         ofs << "property list uchar int vertex_index" << std::endl;
         ofs << "end_header" << std::endl;
 
-        const IntSet& vids = m->vtxIds();
+        const IntSet& vids = m.vtxIds();
         std::unordered_map<int,int> vvmap;
         int i = 0;
         for ( int vid : vids)
         {
             vvmap[vid] = i++;   // Post-increment for PLY
-            ofs << m->vtx(vid)[0] << " " << m->vtx(vid)[1] << " " << m->vtx(vid)[2] << std::endl;
+            ofs << m.vtx(vid)[0] << " " << m.vtx(vid)[1] << " " << m.vtx(vid)[2] << std::endl;
         }   // end for
 
-        const IntSet& fids = m->faces();
+        const IntSet& fids = m.faces();
         for ( int fid : fids)
         {
-            const int* f = m->fvidxs(fid);
+            const int* f = m.fvidxs(fid);
             ofs << "3 " << vvmap.at(f[0]) << " " << vvmap.at(f[1]) << " " << vvmap.at(f[2]) << std::endl;
         }   // end for
 

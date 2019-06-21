@@ -32,7 +32,7 @@ public:
     PLYExporter();
 
 protected:
-    bool doSave( const RFeatures::ObjModel*, const std::string& filename) override;
+    bool doSave( const RFeatures::ObjModel&, const std::string& filename) override;
 };  // end class
 
 }   // end namespace

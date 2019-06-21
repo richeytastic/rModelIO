@@ -579,7 +579,7 @@ std::string writeFile( const ObjModel* model, bool media9, const std::string& fi
 
 
 // protected
-bool IDTFExporter::doSave( const ObjModel* inmodel, const std::string& filename)
+bool IDTFExporter::doSave( const ObjModel& inmodel, const std::string& filename)
 {
     reset();
     // Need to set all the texture map filenames (if present) and save out the textures.
@@ -592,12 +592,12 @@ bool IDTFExporter::doSave( const ObjModel* inmodel, const std::string& filename)
     std::vector<std::pair<int, std::string> > mtf;  // Associate the texture filenames with the material ID
     const ObjModel* model = nullptr;
     ObjModel::Ptr nmodel;
-    if ( inmodel->numMats() <= 1)
-        model = inmodel;
+    if ( inmodel.numMats() <= 1)
+        model = &inmodel;
     else
     {
         std::cerr << "[STATUS] RModelIO::IDTFExporter::doSave: Multi-material model being copied to single material model for export" << std::endl;
-        nmodel = inmodel->deepCopy( true);
+        nmodel = inmodel.deepCopy( true);
         nmodel->mergeMaterials();
         model = nmodel.get();
     }   // end else
