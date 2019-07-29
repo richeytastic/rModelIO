@@ -72,7 +72,6 @@ LaTeXU3DInserter::~LaTeXU3DInserter()
 }   // end dtor
 
 
-// public
 bool LaTeXU3DInserter::setModel( const std::string& u3dfile)
 {
     bool setokay = false;
@@ -88,7 +87,6 @@ bool LaTeXU3DInserter::setModel( const std::string& u3dfile)
 }   // end setModel
 
 
-// private
 bool LaTeXU3DInserter::setModel( const ObjModel& model, const std::string& sdir)
 {
     const std::string u3dtmp = sdir + "/" + boost::filesystem::unique_path().replace_extension(".u3d").string();

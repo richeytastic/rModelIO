@@ -40,31 +40,28 @@ class rModelIO_EXPORT LaTeXU3DInserter
 public:
     typedef std::shared_ptr<LaTeXU3DInserter> Ptr;
 
-    // New figure inserter. Returns NULL if unable to convert given model to U3D.
+    // New figure inserter. Returns null if unable to convert given model to U3D.
     // Don't try to delete the returned object - will be deleted automatically
     // when the PDFGenerator's destructor runs.
     static Ptr create( const RFeatures::ObjModel&,
                        const std::string& u3ddir,           // The directory in which the temporary U3D model is exported
                        float figWidthMM, float figHeightMM, // Width and height of figure in mm
-                       const RFeatures::CameraParams& cam,  // ONLY pos-focus distance and FoV used - see above!
+                       const RFeatures::CameraParams& cam,  // ONLY pos-focus distance and FoV used
                        const std::string& figCaption="",    // Caption ignored if empty
                        const std::string& figLabel="",      // Label not written if empty
                        bool activate3DContentOnOpen=true,   // Activate 3D model on open (true) or click (false)
                        bool removeOnDestroy=true);          // Remove generated U3D files on destruction
 
-    // Set the object to export into the figure, either as the filepath of
-    // an already existing U3D model (in which case the file must have the
-    // extension ".u3d" or false is returned), or as a RFeatures::ObjModel
-    // instance whereupon conversion will be conducted and the U3D model
-    // saved in a temporary file location. If conversion to U3D fails,
-    // false is returned. Note that in the second case, the temporary
-    // file (the produced U3D file) is deleted upon destruction of this
-    // object, so any PDF generation using the same LaTeX file must be
-    // conducted while this object is still alive.
-    // NB RModelIO::U3DExporter::getConverter() must return a valid path
-    // to the IDTFConverter program in order for the second version to work
-    // (see RModelIO::U3DExporter for details).
+    // Set the object to export into the figure, either as the filepath of an already existing U3D model
+    // (in which case the file must have the extension ".u3d" or false is returned), or as a RFeatures::ObjModel
+    // instance whereupon conversion will be conducted and the U3D model saved in a temporary file location.
+    // If conversion to U3D fails, false is returned. Note that in the second case, the temporary file
+    // (the produced U3D file) is deleted upon destruction of this object, so any PDF generation using the
+    // same LaTeX file must be conducted while this object is still alive.
+    // NB RModelIO::U3DExporter::IDTFConverter must be a valid path to the IDTFConverter
+    // program in order for the second version to work (see RModelIO::U3DExporter for details).
     bool setModel( const std::string& u3dfilename);
+    bool setModel( const RFeatures::ObjModel&, const std::string&);
 
 private:
     float _fw;
@@ -80,7 +77,6 @@ private:
     LaTeXU3DInserter( float figWidthMM, float figHeightMM, const RFeatures::CameraParams& cam,
                       const std::string& figCaption="", const std::string& figLabel="",
                       bool activate3DContentOnOpen=true, bool removeOnDestroy=true);
-    bool setModel( const RFeatures::ObjModel&, const std::string&);
     virtual ~LaTeXU3DInserter();
 
     LaTeXU3DInserter( const LaTeXU3DInserter&) = delete;
