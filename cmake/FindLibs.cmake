@@ -384,8 +384,10 @@ endif()
 
 
 if(WITH_OPENCV) # OpenCV
+    set( OpenCV_BASE "${LIB_PRE_REQS}/opencv")
+    set( OpenCV_DIR "${OpenCV_BASE}/share/OpenCV" CACHE PATH "Location of OpenCVConfig.cmake")
     if(WIN32)
-        set( OpenCV_DIR "${LIB_PRE_REQS}/opencv" CACHE PATH "Location of OpenCVConfig.cmake")
+        set( OpenCV_DIR "${OpenCV_BASE}" CACHE PATH "Location of OpenCVConfig.cmake")
         get_msvc_version( _msvcv)
         set( OpenCV_BIN "${OpenCV_DIR}/x64/vc${_msvcv}/bin" CACHE PATH "Location of OpenCV binary (dll) files")
     endif()

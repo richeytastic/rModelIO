@@ -59,6 +59,7 @@ U3DExporter::U3DExporter( bool delOnDestroy, bool m9)
 }   // end ctor
 
 
+namespace {
 bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 {
     bool success = false;
@@ -81,10 +82,10 @@ bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
         boost::process::child c( pexe, boost::process::windows::hide);
 #else
         boost::process::child c( pexe);
+//      success = std::system( pexe.c_str()) == 0;
 #endif
         c.wait();
         success = c.exit_code() == 0;
-        //success = std::system( pexe.c_str()) == 0;
     }   // end try
     catch ( const std::exception& e)
     {
@@ -95,6 +96,7 @@ bool convertIDTF2U3D( const std::string& idtffile, const std::string& u3dfile)
 
     return success;
 }   // end convertIDTF2U3D
+}   // end namespace
 
 
 // protected
