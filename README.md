@@ -3,15 +3,16 @@ Import/export 3D models from/to various formats, and provides cross platform fun
 to export 3D models to PDF (via suitable pdflatex processor).
 
 ## Prerequisites
-- [AssImp](https://github.com/assimp)
+- [rFeatures](../../../rFeatures)
+- [Boost](http://www.boost.org) At least 1.64+ required for boost::process.
 
+- [AssImp](https://github.com/assimp)
     Requires version 4.1 *NB* When configuring using CMake on Windows:
     - *UNCHECK* `AddGTest_FOUND`
     - *UNCHECK* `ASSIMP_BUILD_TESTS`
     - *UNCHECK* `ASSIMP_BUILD_ASSIMP_VIEW` (references deprecated DirectX SDK)
 
 - pdflatex
-
     Optionally required for PDF generation from LaTeX files - must be on the PATH.
     Part of the [MiKTeK](https://miktex.org/) distribution on Windows, but usually
     installed in /usr/bin if installed systemwide on Linux as part of
@@ -23,7 +24,3 @@ to export 3D models to PDF (via suitable pdflatex processor).
     Optionally required for conversion of IDTF format models to U3D models
     (usually prior to embedding in PDFs via creation of a suitable LaTeX
     file before processing by pdflatex and the media9 package).
-
-- [rFeatures](../../../rFeatures)
-
-- [Boost](http://www.boost.org/) 1.64+ required for boost::process.
