@@ -142,12 +142,19 @@ void writeMaterialFaces( std::ostream& os, const ObjModel* model, int midx, cons
 // protected
 bool OBJExporter::doSave( const ObjModel& model, const std::string& fname)
 {
-    const std::string matfile = boost::filesystem::path(fname).replace_extension("mtl").string();
-    std::string err = writeMaterialFile( &model, matfile);
-    if ( !err.empty())
+    std::string err = "";
+
+    // Only need to write out the material file if have materials
+    std::string matfile = "";
+    if ( model.numMats() > 0)
     {
-        setErr( "Unable to write OBJ .mtl file! " + err);
-        return false;
+        matfile = boost::filesystem::path(fname).replace_extension("mtl").string();
+        err = writeMaterialFile( &model, matfile);
+        if ( !err.empty())
+        {
+            setErr( "Unable to write OBJ .mtl file! " + err);
+            return false;
+        }   // end if
     }   // end if
 
     std::ofstream ofs;
@@ -156,8 +163,12 @@ bool OBJExporter::doSave( const ObjModel& model, const std::string& fname)
         ofs.open( fname.c_str(), std::ios::out);
         ofs << "# Wavefront OBJ file produced by RModelIO (https://github.com/richeytastic/rModelIO)" << std::endl;
         ofs << std::endl;
-        ofs << "mtllib " << boost::filesystem::path(matfile).filename().string() << std::endl;
-        ofs << std::endl;
+
+        if ( !matfile.empty())
+        {
+            ofs << "mtllib " << boost::filesystem::path(matfile).filename().string() << std::endl;
+            ofs << std::endl;
+        }   // end if
 
         ofs << "# Model has " << model.numVtxs() << " vertices" << std::endl;
 
